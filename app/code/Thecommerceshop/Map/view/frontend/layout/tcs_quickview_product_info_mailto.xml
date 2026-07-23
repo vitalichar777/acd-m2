@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" layout="1column"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceBlock name="product.info.mailto" remove="true" />
+        <referenceContainer name="product.info.social" label="Product social links container" htmlTag="div"
+                            htmlClass="product-social-links">
+            <block class="Thecommerceshop\Map\Block\Product\Social" name="tcs_product.info.mailto"
+                   template="Thecommerceshop_Map::product/view/mailto.phtml"/>
+        </referenceContainer>
+    </body>
+</page>

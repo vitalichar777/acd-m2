@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <!-- <update handle="catalog_category_view_type_bundle" /> -->
+    <body>
+        <move element="bundle.options.container" destination="product.info.main" after="-"/>
+        <move element="shipping_feature" destination="product.info.main" after="-"/>
+        <referenceBlock name="aslowas.after.price" remove="true"/>
+        <referenceBlock name="aslowas.before.price" remove="true"/>
+        <referenceBlock name="aslowas.end.product.info" remove="true"/>
+        <move element="product.info.addtocart.bundle" destination="bundle.summary" after="product.price.render.bundle.customization"/>
+<!--        <move element="product.quickview.btn" destination="bundle.summary" after="product.price.render.bundle.customization"/> -->
+        <move element="aslowas.bundle" destination="bundle.summary" before="product.price.render.bundle.customization"/>
+        <referenceBlock name="product.info.bundle.options">
+            <action method="setTemplate">
+                <argument name="template" xsi:type="string">Thecommerceshop_Pdpnewdesign::product/view/type/bundle/options.phtml</argument>
+            </action>
+        </referenceBlock>
+	<referenceContainer name="content">
+            <block class="Thecommerceshop\Map\Block\Product\View" name="product.quickview.btn.bundle" template="Thecommerceshop_Map::product/view/quickview-btn.phtml" after="product.price.final">
+                <block class="Magento\Catalog\Block\Product\View" name="product.info.addto.quickview.bundle" as="addto" template="Magento_Catalog::product/view/addto.phtml">
+                <block class="Magento\Wishlist\Block\Catalog\Product\View\AddTo\Wishlist" name="view.addto.wishlist.quickview.bundle" template="Magento_Wishlist::catalog/product/view/addto/wishlist.phtml" />
+                    <block class="Magento\Catalog\Block\Product\View\AddTo\Compare" name="view.addto.compare.quickview.bundle" after="view.addto.wishlist.quickview" template="Magento_Catalog::product/view/addto/compare.phtml" >
+                        <arguments>
+                            <argument name="addToCompareViewModel" xsi:type="object">Magento\Catalog\ViewModel\Product\Checker\AddToCompareAvailability</argument>
+                        </arguments>
+                    </block>
+                </block>
+            </block>
+        </referenceContainer>
+        <move element="product.quickview.btn.bundle" destination="bundle.summary" after="product.price.render.bundle.customization"/>
+       <!-- <referenceBlock name="product.quickview.btn" remove="true"/> -->
+    </body>
+</page>

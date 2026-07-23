@@ -1,0 +1,361 @@
+<?php
+/**
+ * Copyright © Magento, Inc. All rights reserved.
+ * See COPYING.txt for license details.
+ */
+// phpcs:disable Magento2.Templates.ThisInTemplate.FoundThis
+?>
+<?php /** @var $block Magento\Bundle\Block\Catalog\Product\View\Type\Bundle */ ?>
+<?php
+$product = $block->getProduct();
+
+$categoryIds = $product->getCategoryIds();
+$warrantyStatus = false;
+if($categoryIds && count($categoryIds)>0){
+    $Warrantyhelper = $this->helper(Thecommerceshop\Warranty\Helper\Data::class);
+    $warrantyStatus = $Warrantyhelper->getWarrantyStatus($categoryIds);
+}
+
+$helper = $this->helper(Magento\Catalog\Helper\Output::class);
+$stripSelection = $product->getConfigureMode() ? true : false;
+$options = $block->decorateArray($block->getOptions($stripSelection));
+?>
+<?php if ($product->isSaleable()) :?>
+    <?php if (count($options)) : ?>
+<script type="text/x-magento-init">
+    {
+        "#product_addtocart_form": {
+            "priceBundle": {
+                "optionConfig": <?= /* @noEscape */ $block->getJsonConfig() ?>,
+                "controlContainer": ".field.option"
+            }
+        }
+    }
+</script>
+
+<?php $includedOpt = $optionalOPt = $warrantyOpt = $fullOpt = '';
+            foreach ($options as $option) : ?>
+                <?php
+                if (!$option->getSelections()) {
+                    continue;
+                } else {
+                    if((count($option->getSelections()) == 1) && $option->getRequired()){
+                        $includedOpt .=  $block->getOptionHtml($option);
+                    }elseif($Warrantyhelper->validateWarrantyCategory($option->getId()) === true){
+                        $warrantyOpt .= $block->getOptionHtml($option);
+                    }else{
+                        $optionalOPt .=  $block->getOptionHtml($option);
+                    }
+                }
+                ?>
+            <?php endforeach; ?>
+        <fieldset class="fieldset fieldset-bundle-options">
+<?php if($optionalOPt != ''){ ?>
+            <legend id="customizeTitle" class="legend title">
+                <span><?= $block->escapeHtml(__('Customize your Product')) ?></span>
+            </legend><br />
+            <div class="choose_pdp">
+                <span>(Please choose the options below and add to cart)</span>
+                <p class="required_pdp">* Required Selection</p>
+           </div>
+<?php } ?>
+                <?php $fullOpt = ($includedOpt == '') ? $includedOpt : "<div data-role='collapsible' class='collapsible_title'>See what is Included <div data-role='trigger' class='collapsible_icon'></div></div><div data-role='content' class='option_included'>".$includedOpt."</div>";
+                $fullOpt .= ($optionalOPt == '') ? $optionalOPt : "<div data-role='collapsible' class='collapsible_title'>Required Accessories / Units <div data-role='trigger' class='collapsible_icon'></div></div><div data-role='content' class='option_optional'>".$optionalOPt."</div>";
+                if($warrantyStatus === true){
+                    $fullOpt .= ($warrantyOpt == '') ? $warrantyOpt : "<div data-role='collapsible' class='collapsible_title'>3<sup>rd</sup> Party Extended Labor Warranty
+<span class='tooltip-container'>
+<span class='tooltip-icon'>?</span>
+<!--<span class='tooltip-text'>". $this->getLayout()->createBlock('Magento\Cms\Block\Block')->setBlockId('warranty_policy_link')->toHtml()."</span>-->
+</span>
+<div data-role='trigger' class='collapsible_icon'></div></div><div data-role='content' class='option_optional warranty_options'>".$warrantyOpt."</div>";
+                }?>
+                <div data-mage-init='{"accordion":{"openedState": "active", "collapsible": true, "active":[1, 2], "multipleCollapsible": true}}'>
+                    <?php echo $fullOpt; ?>
+                </div>
+        </fieldset>
+    <?php else : ?>
+        <p class="empty"><?= $block->escapeHtml(__('No options of this product are available.')) ?></p>
+    <?php endif; ?>
+<?php endif;?>
+<script type="text/javascript">
+        require([
+            'jquery','domReady!'
+        ], function ($) {
+            if($('body').hasClass('tcs_quickview-catalog_product-view')) {
+                var selectionList = parent.window.BundleList;
+
+                // Handle dropdown selects
+                var CurrentselectionList = $('.tcs_quickview-catalog_product-view .bundle-options-wrapper #product-options-wrapper .field.option select');
+                if(Object.keys(selectionList).length > 0){
+                    CurrentselectionList.each(function(){
+                        this.selectedIndex = selectionList[this.id];
+                    });
+                    // Show price configuration and hide regular price box
+                    var ConfigPriceDiv = $('.tcs_quickview-catalog_product-view .price-configured_price .price-as-configured');
+                    ConfigPriceDiv.addClass('show');
+                    ConfigPriceDiv.removeClass('hide');
+                }
+
+                // Dynamically get optionId and selectionId for radio bundle options from window.BundleList
+                var optionId = null;
+                var selectionId = null;
+                var selectionList = parent.window.BundleList || {};
+                var $checkedRadio = $('.tcs_quickview-catalog_product-view .bundle-options-wrapper #product-options-wrapper .field.option .radio:checked').first();
+                if ($checkedRadio.length) {
+                    var nameAttr = $checkedRadio.attr('name'); // e.g., bundle_option[13031]
+                    var match = nameAttr.match(/\[(\d+)\]/);
+                    if (match) {
+                        optionId = match[1];
+                        selectionId = selectionList['bundle-option-' + optionId];
+                    }
+                }
+
+                var attempts = 0;
+                var maxAttempts = 15;
+                var interval = setInterval(function () {
+                var $radio = $('input[name="bundle_option[' + optionId + ']"][value="' + selectionId + '"]');
+                var $form = $('#product_addtocart_form');
+                var widgetInstance = $form.data('mage-priceBundle');
+
+                if ($radio.length && widgetInstance) {
+                // 1. Select the desired radio button
+                $radio.prop('checked', true).trigger('change');
+
+                // 2. Force the bundle widget to recalculate price
+                if (typeof widgetInstance.reloadPrice === 'function') {
+                widgetInstance.reloadPrice();
+                console.log('Bundle price updated successfully!');
+                clearInterval(interval);
+            } else {
+                console.warn('reloadPrice is not a function on widget instance.');
+            }
+        } else {
+            console.log('Waiting for widget or radio to be available...');
+        }
+
+        if (++attempts >= maxAttempts) {
+            clearInterval(interval);
+            console.error('Timeout: Could not auto-select bundle option.');
+        }
+    }, 300);
+                // // Handle radio buttons
+                // for (var key in selectionList) {
+                //     if (selectionList.hasOwnProperty(key)) {
+                //         // Extract option ID from the key (e.g., 'bundle-option-13030')
+                //         var optionIdMatch = key.match(/bundle-option-(\d+)/);
+                //         if (optionIdMatch && optionIdMatch[1]) {
+                //             var optionId = optionIdMatch[1];
+                //             var selectedValue = selectionList[key];
+
+                //             // Find and check the appropriate radio button
+                //             if (selectedValue) { console.log('selected value');console.log(selectedValue);
+                //                 // Select the specific option
+                //                 var radioSelector = '.tcs_quickview-catalog_product-view .bundle-options-wrapper #product-options-wrapper .field.option input[name="bundle_option[' + optionId + ']"][value="' + selectedValue + '"]';
+                //                 console.log(radioSelector);
+                //                 $(radioSelector).prop('checked', true).trigger('change');
+                //             } else {
+                //                 // Select the "None" option
+                //                 var noneRadioSelector = '.tcs_quickview-catalog_product-view .bundle-options-wrapper #product-options-wrapper .field.option input[name="bundle_option[' + optionId + ']"][value=""]';
+                //                 $(noneRadioSelector).prop('checked', true).trigger('change');
+                //             }
+                //         }
+                //     }
+                // }
+
+                var PriceBoxDiv = $('.tcs_quickview-catalog_product-view .product-info-main .product-info-price .price-box.price-final_price');
+                PriceBoxDiv.attr('style', 'display: none !important');
+            }
+        });
+</script>
+
+<style>
+
+/*.tooltip-container {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+}
+
+.tooltip-icon {
+    background-color: #fff; 
+    color: #222; 
+    font-size: 14px;
+    font-weight: bold;
+    width: 18px;
+    height: 18px;
+    text-align: center;
+    line-height: 18px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-left: 5px;
+}
+
+
+.tooltip-text {
+    visibility: hidden;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    padding: 5px 10px;
+    border-radius: 4px;
+    position: absolute;
+    top: 50%;
+    left: 130%; 
+    transform: translateY(-50%);
+    white-space: nowrap;
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity 0.3s;
+white-space: normal;
+    word-wrap: break-word;
+    min-width: 220px;
+    text-transform: initial;
+    font-weight: normal;
+    z-index: 1000;
+} */
+
+/* Tooltip Arrow 
+.tooltip-text::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 100%; 
+    transform: translateY(-50%);
+    border-width: 6px;
+    border-style: solid;
+    border-color: transparent #333 transparent transparent;
+}
+*/
+/* Show Tooltip on Hover 
+.tooltip-container:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+}
+
+@media(max-width:767.98px){
+  .tooltip-text{min-width:170px;}
+} */
+</style>
+
+<!-- Warranty Tooltip Modal -->
+<?php
+// Get the warranty tooltip static block content
+$warrantyTooltipContent = $this->getLayout()->createBlock('Magento\Cms\Block\Block')->setBlockId('warranty_tooltip')->toHtml();
+?>
+
+<!-- Modal HTML Structure -->
+<div id="warranty-tooltip-modal" style="display: none;">
+    <div class="tooltip-content">
+        <?php echo $warrantyTooltipContent; ?>
+    </div>
+</div>
+
+<script type="text/x-magento-init">
+{
+    "#warranty-tooltip-modal": {
+        "Magento_Ui/js/modal/modal": {
+            "type": "popup",
+            "title": "Warranty Information",
+            "modalClass": "tooltip-popup-modal",
+            "responsive": true,
+            "innerScroll": true,
+            "buttons": []
+        }
+    }
+}
+</script>
+
+<style>
+.tooltip-container {
+    position: relative;
+    display: inline-block;
+    cursor: pointer;
+}
+
+.tooltip-icon {
+    background-color: #fff; 
+    color: #222; 
+    font-size: 14px;
+    font-weight: bold;
+    width: 18px;
+    height: 18px;
+    text-align: center;
+    line-height: 18px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-left: 5px;
+}
+
+.tooltip-popup {
+    /* cursor: pointer; */
+    color: #007bff;
+    text-decoration: underline;
+    font-weight: bold;
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    font-size: 12px;
+    margin-left: 5px;
+}
+
+.tooltip-popup:hover {
+    color: #0056b3;
+    background-color: #e9ecef;
+    text-decoration: none;
+}
+
+.tooltip-content {
+    padding: 20px;
+    text-align: center;
+    font-size: 16px;
+    line-height: 1.5;
+}
+
+.tooltip-popup-modal .modal-inner-wrap {
+    width: 800px !important;
+    max-width: 90vw;
+}
+
+.tooltip-popup-modal .modal-content {
+    width: 100%;
+}
+
+@media (max-width: 768px) {
+    .tooltip-popup {
+        font-size: 11px;
+        padding: 1px 4px;
+    }
+    
+    .tooltip-content {
+        padding: 15px;
+        font-size: 14px;
+    }
+}
+.warranty_options .field.choice{position: relative;}
+.warranty_options .field.choice .tooltip-popup{font-size:11px !important; position:absolute; top:-12px;right: 0;color: #fff !important;text-decoration: none;padding: 1px 5px;background-color: #ee2d43 !important;border: 1px solid #ee2d43;position: absolute;}
+.warranty_tooltip_content p{color: #444;font-size: 16px;text-align: left;}
+.warranty_tooltip_content ul{padding-left: 16px;}
+.warranty_tooltip_content ul li{color: #444;font-size: 16px !important;text-align: left;}
+@media(max-width:767.98px){
+    .tooltip-popup-modal.modal-popup._inner-scroll .modal-content{padding-top: 2.6rem !important;}
+    .tooltip-popup-modal.modal-popup.modal-slide._inner-scroll .modal-inner-wrap{min-height: auto;}
+}
+</style>
+
+<script>
+require(['jquery'], function($) {
+    $(document).ready(function() {
+        // Handle tooltip popup click
+        $(document).on('click', '.tooltip-icon', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Open the modal using jQuery
+            $('#warranty-tooltip-modal').modal('openModal');
+        });
+    });
+});
+</script>
+

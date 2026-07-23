@@ -1,0 +1,92 @@
+<?xml version="1.0"?>
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <!-- <update handle="catalog_category_view" /> -->
+    <head>
+        <css src="Thecommerceshop_Pdpnewdesign::css/pdp-new-design.css"/>
+    </head>
+    <body>
+        <referenceBlock name="prev_next_products" remove="true"/>
+        <referenceBlock name="category.view.container" remove="true"/>
+        <referenceBlock name="product.view.extra.simple" remove="true"/>
+        <!-- <referenceBlock name="page.messages" remove="true"/> -->
+        <referenceBlock name="product.info.stock.sku" remove="true"/>
+        <referenceBlock name="amasty.rewards.highlight.container" remove="true"/>
+        <referenceContainer name="content">
+            <block class="Magento\Cms\Block\Block" name="free_shipping_logo">
+                <arguments>
+                    <argument name="block_id" xsi:type="string">free_ship_image</argument>
+                </arguments>
+            </block>
+             <block class="Magento\Cms\Block\Block" name="shipping_feature">
+                <arguments>
+                    <argument name="block_id" xsi:type="string">pdp_page_shipping_feature</argument>
+                </arguments>
+            </block>
+            <block class="Magento\Cms\Block\Block" name="no_credit_banners">
+                <arguments>
+                    <argument name="block_id" xsi:type="string">pdp_page_interest_blk</argument>
+                </arguments>
+            </block>
+            <block class="Magento\Catalog\Block\Product\View" name="custom.attribute.newdesign" template="Thecommerceshop_Pdpnewdesign::product/view/custom_attribute.phtml"/>
+            <block class="Magento\Catalog\Block\Product\View" name="custom.attribute.newdesign.mobile" template="Thecommerceshop_Pdpnewdesign::product/view/custom_attribute.phtml"/>
+            <block class="Magento\Catalog\Block\Product\View" name="sizing.calculator.button" template="Thecommerceshop_Pdpnewdesign::product/view/sizing_calc_button.phtml"/>
+        </referenceContainer>
+        <referenceBlock name="product.info.main">
+		    <block class="Neklo\MakeAnOffer\Block\Request\Form" name="product.view.extra.simple.bottom" template="Neklo_MakeAnOffer::button.phtml"/>
+            <container name="product.info.stock.sku.newdesign" label="Product auxiliary info" htmlTag="div" htmlClass="product-info-stock-sku" before="product.info.price">
+                <container name="product.info.type" before="-"/>
+                <block class="Magento\Catalog\Block\Product\View\Description" name="product.info.sku" template="Magento_Catalog::product/view/attribute.phtml" after="product.info.type">
+                    <arguments>
+                        <argument name="at_call" xsi:type="string">getSku</argument>
+                        <argument name="at_code" xsi:type="string">sku</argument>
+                        <argument name="css_class" xsi:type="string">sku</argument>
+                        <argument name="at_label" xsi:type="string">default</argument>
+                        <argument name="add_attribute" xsi:type="string">itemprop="sku"</argument>
+                    </arguments>
+                </block>
+                <block class="Magento\Catalog\Block\Product\View\Description" name="product.info.upc" template="Magento_Catalog::product/view/attribute.phtml" after="product.info.sku">
+                <arguments>
+                    <argument name="at_call" xsi:type="string">getUpc</argument>
+                    <argument name="at_code" xsi:type="string">upc</argument>
+                    <argument name="css_class" xsi:type="string">upc</argument>
+                    <argument name="at_label" xsi:type="string">UPC#:</argument>
+                    <argument name="add_attribute" xsi:type="string">itemprop="upc"</argument>
+                </arguments>
+            </block>
+            </container>
+        </referenceBlock>
+        <!-- <referenceBlock name="bundle.options.container">
+            <container name="page.messages.bottom" htmlTag="div" htmlClass="page messages" after="-">
+                    <block class="Magento\Framework\View\Element\Template" name="ajax.message.placeholder" template="Magento_Theme::html/messages.phtml"/>
+                    <block class="Magento\Framework\View\Element\Messages" name="messages" as="messages" template="Magento_Theme::messages.phtml"/>
+            </container>
+        </referenceBlock> -->
+        <referenceContainer name="after.body.start">
+            <block class="Magento\Catalog\Block\Product\View" name="sticky.addtocart" template="Thecommerceshop_Pdpnewdesign::product/view/stickyaddtocart.phtml" before="-"/>
+        </referenceContainer>
+        <move element="free_shipping_logo" destination="content" before="product.info.main"/>
+        <move element="no_credit_banners" destination="content" after="product.info.main"/>
+        <move element="product.view.extra.simple.bottom" destination="product.info.main" before="shipping_feature"/>
+        <move element="product.info.review" destination="product.info.main" before="product.info.stock.sku.newdesign"/>
+        <move element="product.info.overview" destination="product.info.main" after="product.info.stock.sku.newdesign"/>
+        <move element="custom.attribute.newdesign" destination="product.info.media" after="-"/>
+        <move element="sizing.calculator.button" destination="product.info.main" after="product.info.overview"/>
+        <move element="custom.attribute.newdesign.mobile" destination="product.info.main" after="product.info.overview"/>
+        <referenceContainer name="product.info.main">
+            <container name="amasty.rewards.highlight.container.newpdp">
+                <block class="Amasty\Rewards\Block\Frontend\Catalog\HighlightProduct" ifconfig="amrewards/general/enabled" name="amasty.rewards.highlight.product.newpdp" template="Amasty_Rewards::catalog/highlight.phtml">
+                    <arguments>
+                        <argument name="jsLayout" xsi:type="array">
+                            <item name="components" xsi:type="array">
+                                <item name="amasty-rewards-highlight-catalog" xsi:type="array">
+                                    <item name="component" xsi:type="string">Amasty_Rewards/js/model/catalog/highlight-product</item>
+                                </item>
+                            </item>
+                        </argument>
+                    </arguments>
+                </block>
+            </container>
+        </referenceContainer>
+        <move element="amasty.rewards.highlight.container.newpdp" destination="product.info.main" before="product.view.extra.simple.bottom"/>
+    </body>
+</page>

@@ -1,0 +1,15 @@
+<?php
+/**
+ * @var \Thecommerceshop\Map\Block\Product\Social $block
+ */
+?>
+<?php $_product = $block->getProduct() ?>
+<?php if ($block->getConfigShowEmail()): ?>
+    <a href="<?= $block->escapeUrl($this->helper(Magento\Catalog\Helper\Product::class)->getEmailToFriendUrl($_product)) ?>"
+       class="action mailto friend"><span><?= $block->escapeHtml(__('Email')) ?></span></a>
+<?php endif; ?>
+<script type="text/x-magento-init">
+    {
+        "*": {"Thecommerceshop_Map/js/wishlist":{}}
+    }
+</script>

@@ -1,0 +1,6 @@
+<?xml version="1.0" ?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+	<preference for="Thecommerceshop\Map\Api\DiscountRepositoryInterface" type="Thecommerceshop\Map\Model\DiscountRepository"/>
+	<preference for="Thecommerceshop\Map\Api\Data\DiscountInterface" type="Thecommerceshop\Map\Model\Discount"/>
+	<preference for="Thecommerceshop\Map\Api\Data\DiscountSearchResultsInterface" type="Magento\Framework\Api\SearchResults"/>
+</config>

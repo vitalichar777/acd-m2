@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+    <system>
+        <tab id="tcs" translate="label" sortOrder="300">
+            <label> <![CDATA[Thecommerceshop]]></label>
+        </tab>
+
+        <section id="tcs_quickview" translate="label" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+            <label>MAP Quick View</label>
+            <tab>tcs</tab>
+            <resource>Thecommerceshop_Map::tcs_quickview</resource>
+            <group id="general" translate="label" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>General</label>
+                <field id="enable_product_listing" translate="label" type="select" sortOrder="0" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Enable</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment><![CDATA[Version 1.1.1<br/>Choose 'yes' to enable module.]]></comment>
+                </field>
+                <field id="map_price_label" translate="label" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Map Price Label Block ID: </label>
+                    <comment><![CDATA[Map Price Label CMS Block Id]]></comment>
+                </field>
+
+                <field id="map_button_text" translate="label" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Add to Cart Button Text: </label>
+                    <comment><![CDATA[Add to Cart Button Text]]></comment>
+                </field>
+                <field id="map_category_id" translate="label" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Map Category Id: </label>
+                    <comment><![CDATA[Map Category Id]]></comment>
+                </field>
+                <field id="map_data_build" translate="" type="button" sortOrder="35" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <label>Build MAP Discount Data</label>
+                    <frontend_model>Thecommerceshop\Map\Block\Adminhtml\System\Config\Button</frontend_model>
+                </field>
+            </group>
+            <group id="seting_theme" translate="label" type="text" sortOrder="40" showInDefault="10" showInWebsite="1" showInStore="1">
+                <label>Setting For Theme</label>
+                <field id="product_item_info" translate="label" type="text" sortOrder="0" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Product Item Info Class</label>
+                    <comment><![CDATA[Default Magento 2 is: product-item-info]]></comment>
+                </field>
+                <field id="product_image_wrapper" translate="label" type="text" sortOrder="1" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Product Image Wrapper Class</label>
+                    <comment><![CDATA[Default Magento 2 is: product-image-wrapper]]></comment>
+                </field>
+            </group>
+        </section>
+    </system>
+</config>

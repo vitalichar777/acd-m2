@@ -1,0 +1,140 @@
+<?php 
+$_product = $block->getProduct();
+$category_ids = $_product->getCategoryIds();?>
+
+<div class="pdp_btmblk">
+    <ul>
+        <?php
+        //Tonnage Product attribute - size or system_size
+        //echo "tonnage";
+        $tonnage = ($_product->getAttributeText('system_size')!=NULL) ? $_product->getAttributeText('system_size') : $_product->getAttributeText('size');
+        switch (strtolower($tonnage)) {
+            case '1.5 ton':
+                $tonnageText = "1.5 ton - best for spaces between 750 - 1000 sq ft depending on your home's insulation and your climate";
+                break;
+            case '2 ton':
+                $tonnageText = "2 ton - best for spaces between 1000 - 1200 sq ft depending on your home's insulation and your climate";
+                break;
+            case '2.5 ton':
+                $tonnageText = "2.5 ton - best for spaces between 1200 -1500 sq ft depending on your home's insulation and your climate";
+                break;
+            case '3 ton':
+                $tonnageText = "3 ton - best for spaces between 1500 - 1800 sq ft depending on your home's insulation and your climate";
+                break;
+            case '3.5 ton':
+                $tonnageText = "3.5 ton - best for spaces between 1700- 2100 sq ft depending on your home's insulation and your climate";
+                break;
+            case '4 ton':
+                $tonnageText = "4 ton - best for spaces between 2000-2400 sq ft depending on your home's insulation and your climate";
+                break;
+            case '5 ton':
+                $tonnageText = "5 ton - best for spaces between 2400- 3000 sq ft depending on your home's insulation and your climate";
+                break;
+        default:
+                $tonnageText = '';
+        }
+
+        if($tonnage != '' && $tonnageText != ''){echo '<li><i class="fa fa-check" aria-hidden="true"></i><span>'.$tonnageText.'</span></li>';}
+
+        //SEER Rating
+        //echo "SEER Rating";
+        echo '<li><i class="fa fa-check" aria-hidden="true"></i><span>'.$this->getLayout()->createBlock('Magento\Cms\Block\Block')->setBlockId('pdp_attributetext_seer')->toHtml().'</span></li>';
+
+        //Heat pump
+        //echo "Heat pump";
+        $heatingType = $_product->getAttributeText('heating_type');
+        if($heatingType != '' && $heatingType == 'Heat Pump'){
+            echo '<li><i class="fa fa-check" aria-hidden="true"></i><span>'.$this->getLayout()->createBlock('Magento\Cms\Block\Block')->setBlockId('pdp_attributetext_heatpump')->toHtml().'</span></li>';
+        }
+        //Electric heat
+        //echo "Electric heat";
+        if($heatingType != '' && $heatingType == 'Electric'){
+            echo '<li><i class="fa fa-check" aria-hidden="true"></i><span>'.$this->getLayout()->createBlock('Magento\Cms\Block\Block')->setBlockId('pdp_attributetext_electricheat')->toHtml().'</span></li>';
+        }
+        //Split system
+        //echo "Split system";
+        $category_splitsystem = ['204', '207', '206', '210'];
+        if(count(array_intersect($category_ids, $category_splitsystem)) > 0){
+            echo '<li><i class="fa fa-check" aria-hidden="true"></i><span>'.$this->getLayout()->createBlock('Magento\Cms\Block\Block')->setBlockId('pdp_categorytext_splitsystem')->toHtml().'</span></li>';
+        }
+        //Package unit
+        //echo "Package unit";
+        $category_package_unit = ['212'];
+        if(count(array_intersect($category_ids, $category_package_unit)) > 0){
+            echo '<li><i class="fa fa-check" aria-hidden="true"></i><span>'.$this->getLayout()->createBlock('Magento\Cms\Block\Block')->setBlockId('pdp_categorytext_packageunit')->toHtml().'</span></li>';
+        }
+        //Gas heat
+        //echo "Gas heat";
+        if($heatingType != '' && $heatingType == 'Gas'){
+            echo '<li><i class="fa fa-check" aria-hidden="true"></i><span>'.$this->getLayout()->createBlock('Magento\Cms\Block\Block')->setBlockId('pdp_attributetext_gasheat')->toHtml().'</span></li>';
+        }
+        //Furnace
+        //echo "Furnace";
+        if($heatingType != '' && $heatingType == 'Gas'){
+            echo '<li><i class="fa fa-check" aria-hidden="true"></i><span>'.$this->getLayout()->createBlock('Magento\Cms\Block\Block')->setBlockId('pdp_attributetext_furnace')->toHtml().'</span></li>';
+        }
+        //Mini split btu's
+        //echo "Mini split btu's";
+        $category_mini_split_btu = ['648','649','615','650','651','652','653'];
+        if(count(array_intersect($category_ids, $category_mini_split_btu)) > 0){
+            echo '<li><i class="fa fa-check" aria-hidden="true"></i><span>'.$this->getLayout()->createBlock('Magento\Cms\Block\Block')->setBlockId('pdp_categorytext_minisplitbtu')->toHtml().'</span></li>';
+            if(in_array('648', $category_ids)){
+                echo '<li><i class="fa fa-check" aria-hidden="true"></i><span>2 zone mini split -This system will independently condition 2 separate rooms/zones to the individual temperatures you choose for each zone</span></li>';
+            }
+            if(in_array('649', $category_ids)){
+                echo '<li><i class="fa fa-check" aria-hidden="true"></i><span>3 zone mini split -This system will independently condition 3 separate rooms/zones to the individual temperatures you choose for each zone</span></li>';
+            }
+            if(in_array('615', $category_ids)){
+                echo '<li><i class="fa fa-check" aria-hidden="true"></i><span>4 zone mini split -This system will independently condition 4 separate rooms/zones to the individual temperatures you choose for each zone</span></li>';
+            }
+            if(in_array('650', $category_ids)){
+                echo '<li><i class="fa fa-check" aria-hidden="true"></i><span>5 zone mini split -This system will independently condition 5 separate rooms/zones to the individual temperatures you choose for each zone</span></li>';
+            }
+            if(in_array('651', $category_ids)){
+                echo '<li><i class="fa fa-check" aria-hidden="true"></i><span>6 zone mini split -This system will independently condition 6 separate rooms/zones to the individual temperatures you choose for each zone</span></li>';
+            }
+            if(in_array('652', $category_ids)){
+                echo '<li><i class="fa fa-check" aria-hidden="true"></i><span>7 zone mini split -This system will independently condition 7 separate rooms/zones to the individual temperatures you choose for each zone</span></li>';
+            }
+            if(in_array('653', $category_ids)){
+                echo '<li><i class="fa fa-check" aria-hidden="true"></i><span>8 zone mini split -This system will independently condition 8 separate rooms/zones to the individual temperatures you choose for each zone</span></li>';
+            }
+        }
+        //Low NOx and Ultra-Low NOx
+        //echo "Low NOx and Ultra-Low NOx";
+        $category_low_nox = ['630','639'];
+        if(count(array_intersect($category_ids, $category_low_nox)) > 0){
+            echo '<li><i class="fa fa-check" aria-hidden="true"></i><span>'.$this->getLayout()->createBlock('Magento\Cms\Block\Block')->setBlockId('pdp_categorytext_lownox')->toHtml().'</span></li>';
+        }
+        //Dual fuel AKA hybrid heat pump
+        //echo "Dual fuel AKA hybrid heat pump";
+        $category_dual_fuel_AKA_hybrid_heat_pump = ['602'];
+        if(count(array_intersect($category_ids, $category_dual_fuel_AKA_hybrid_heat_pump)) > 0){
+            echo '<li><i class="fa fa-check" aria-hidden="true"></i><span>'.$this->getLayout()->createBlock('Magento\Cms\Block\Block')->setBlockId('pdp_categorytext_dualfuelAKAhybridheatpump')->toHtml().'</span></li>';
+        }
+        //Mobile home equipment is specific for mobile homes
+        //echo "Mobile home equipment is specific for mobile homes";
+        $category_mobile_home_equipment = ['555'];
+        if(count(array_intersect($category_ids, $category_mobile_home_equipment)) > 0){
+            echo '<li><i class="fa fa-check" aria-hidden="true"></i><span>'.$this->getLayout()->createBlock('Magento\Cms\Block\Block')->setBlockId('pdp_categorytext_mobilehomeequipment')->toHtml().'</span></li>';
+        }
+        //Mobile home – add on existing heat pump
+        //echo "Mobile home – add on existing heat pump";
+        $category_mobile_home_existing_heat_pump = ['563'];
+        if(count(array_intersect($category_ids, $category_mobile_home_existing_heat_pump)) > 0){
+            echo '<li><i class="fa fa-check" aria-hidden="true"></i><span>'.$this->getLayout()->createBlock('Magento\Cms\Block\Block')->setBlockId('pdp_categorytext_mobilehomeexistingheatpump')->toHtml().'</span></li>';
+        }
+        //Mobile home – add cooling to your existing gas or electric furnace.
+        //echo "Mobile home – add cooling to your existing gas or electric furnace.";
+        $category_mobile_home_cooling = ['562'];
+        if(count(array_intersect($category_ids, $category_mobile_home_cooling)) > 0){
+            echo '<li><i class="fa fa-check" aria-hidden="true"></i><span>'.$this->getLayout()->createBlock('Magento\Cms\Block\Block')->setBlockId('pdp_categorytext_mobilehomecooling')->toHtml().'</span></li>';
+        }
+        //Commercial mini splits
+        //echo "Commercial mini splits";
+        $category_commercial_mini_splits = ['354'];
+        if(count(array_intersect($category_ids, $category_commercial_mini_splits)) > 0){
+            echo '<li><i class="fa fa-check" aria-hidden="true"></i><span>'.$this->getLayout()->createBlock('Magento\Cms\Block\Block')->setBlockId('pdp_categorytext_commercialminisplits')->toHtml().'</span></li>';
+        }?>
+    </ul>
+</div>

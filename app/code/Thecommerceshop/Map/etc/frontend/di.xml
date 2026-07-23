@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <!--Redirect product detail page when add compare product-->
+    <type name="Magento\Catalog\Controller\Product\Compare\Add">
+        <plugin name="tcs_quick_view_product_compare_add" type="Thecommerceshop\Map\Plugin\SetRedirectUrlWhenAddCompareProduct" sortOrder="20" disabled="false" />
+    </type>
+    <!--End-->
+
+    <!--
+    <preference for="Magento\Catalog\Pricing\Render\FinalPriceBox" type="Thecommerceshop\Map\Block\Mapmsg" />
+    <preference for="Magento\Catalog\Pricing\Render" type="Thecommerceshop\Map\Block\Render" />
+    -->
+
+    <type name="\Magento\Bundle\Pricing\Render\FinalPriceBox">
+        <plugin name="Thecommerceshop_Map_change_template" type="Thecommerceshop\Map\Plugin\FinalPricePlugin" />
+    </type>
+
+    <!-- Apply quantity validators plugin to custom Map product view block -->
+    <type name="Thecommerceshop\Map\Block\Product\View">
+        <plugin name="quantityValidators" type="Thecommerceshop\Map\Plugin\ProductViewQuantityValidators" />
+    </type>
+</config>

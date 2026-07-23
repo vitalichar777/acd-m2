@@ -1,0 +1,37 @@
+<?php 
+    $_product = $block->getProduct(); 
+    $mapHelper = $this->helper('Thecommerceshop\Map\Helper\Data');
+    $priceHelper = $this->helper('Magento\Framework\Pricing\Helper\Data');
+    $currentCategory = $this->helper('Magento\Catalog\Helper\Data')->getCategory();
+?>
+<?php if ($_product->isSaleable()) : ?>
+    <?php if(($mapHelper->getMapCategoryId() && in_array($mapHelper->getMapCategoryId(), $_product->getCategoryIds())) && (!$_product->getSpecialPrice() > 0)): ?>
+        <div id="quickview-<?php echo $_product->getId()?>" class="tcs-bt-quickview">
+            <a data-id="<?php echo $_product->getId()?>" class="tcs-quickview btn btn-action action primary" data-quickview-url="<?php echo $mapHelper->getBaseUrl(); ?>tcs_quickview/catalog_product/view/id/<?php echo $_product->getId()?>" href="javascript:void(0);">
+            <?php $buttontext = $mapHelper->getAddToCartText();?>
+                    <span><?php echo $buttontext; ?></span>
+            </a>
+        </div>
+        <?php echo $block->getChildHtml(); ?>
+        <style>
+            .catalog-product-view .product-info-main .product-social-links .product-addto-links{display:none;}
+        </style>
+        <script type="text/javascript">
+            require([
+                'jquery'
+            ], function ($) {
+                if(jQuery('body').hasClass('catalog-product-view')){
+                    jQuery('body').addClass('tcs_map_product_pdp');
+                }
+                var addtoLinks =  jQuery('.product-info-main .product-social-links');
+                if(addtoLinks.length == 1){
+                    addtoLinks[0].remove('.product-addto-links');
+                }
+            });
+    </script>
+    <?php endif; ?>
+<?php else: ?>
+    <div class="stock unavailable">
+        <span><?= /* @noEscape */ __('Out of stock') ?></span>
+    </div>
+<?php endif; ?>

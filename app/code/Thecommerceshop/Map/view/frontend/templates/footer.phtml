@@ -1,0 +1,86 @@
+<div class="mfp-footer">
+    <div class="actions">
+        <button
+            type="button"
+            title="Keep in Cart"
+            class="action primary"
+            id="product-buynow-button">
+            <span>Keep in Cart</span>
+        </button>
+        <button
+            type="button"
+            title="Continue Shopping"
+            class="action primary"
+            id="product-ctn-shopping-button">
+            <span>Continue Shopping</span>
+        </button>
+    </div>
+</div>
+<style>
+    #maincontent {
+        max-height: 630px;
+        overflow-y: scroll;
+        max-width: 100%;
+    }
+
+    .mfp-footer{
+        position: fixed;
+        bottom: 0px;
+        right: 0px;
+        left: 0;
+        background: #d3d3d3cc;
+        padding: 10px;
+        /* margin: auto; */
+        display: flex;
+        justify-content: flex-end;
+        padding-right: 27px;
+    }
+    .page-wrapper {
+        padding-top:0px !important;
+    }
+    html {
+        overflow: hidden;
+    }
+    .nested .control .qty-changer{
+        display:none !important;
+    }
+    .product-info-price .map-price {
+        *font-weight: bold; 
+        font-size: 24px; 
+        color: #EE2D43;
+        font-family: 'Oswald';
+    }
+    .product-info-price .map-price span.mPrice {
+        text-decoration: line-through;
+    }
+    .product-info-price .map-price span.mPrice{
+        color: #2b2b2d;
+    }
+    .product-info-price .map-price span.SavePriceText{
+        color: #0c0;
+    }
+    .tcs_quickview-catalog_product-view .map-label {
+        display: block !important;
+        font-size: 15px;
+    }
+    .tcs_quickview-catalog_product-view .price-label {
+        display: none !important;
+    }
+
+    .tcs_quickview-catalog_product-view .product-info-price .price-box .price-container .price {
+        font-size: 30px !important;
+        color: #2b2b2d !important;
+    }
+
+    .tcs_quickview-catalog_product-view .product-info-main .product-info-price .old-price .price-wrapper .price {
+        font-size: 24px !important;
+        color: #EE2D43 !important;
+    }
+    .tcs_quickview-catalog_product-view p.minimal-price {
+        *margin-bottom: 0px !important;
+    }
+    .tcs_quickview-catalog_product-view .product-info-main .product-info-price .price-box {
+        *margin-bottom: 0px !important;
+    }
+    
+</style>

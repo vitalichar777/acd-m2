@@ -1,0 +1,33 @@
+<?php
+/**
+ * @var \Thecommerceshop\Map\Block\Initialize $block
+ */
+?>
+<?php
+$helper = $block->getHelper();
+$btnTextColor = $helper->getBtnTextColor();
+$baseUrl = $helper->getBaseUrl();
+$buttonText = $helper->getButtonText();
+$btnBackground = $helper->getBtnBackground();
+list($r, $g, $b) = sscanf($btnBackground, "%02x%02x%02x");
+$productUrl = $helper->getUrl();
+$buttonText = $helper->getButtonText();
+$isEnabled = $helper->enabled();
+$productItemInfo = $helper->getProductItemInfo();
+$productImageWrapper = $helper->getProductImageWrapper();
+?>
+
+<script type="text/x-magento-init">
+    {
+        "*": {
+            "Thecommerceshop_Map/js/tcs_config": {
+                "productUrl": "<?php echo $productUrl; ?>",
+                "buttonText": "<?php echo $buttonText; ?>",
+                "isEnabled": "<?php echo $isEnabled; ?>",
+                "baseUrl": "<?php echo $baseUrl; ?>",
+                "productItemInfo": "<?php echo $productItemInfo; ?>",
+                "productImageWrapper": "<?php echo $productImageWrapper; ?>"
+            }
+        }
+    }
+</script>

@@ -1,0 +1,77 @@
+<div class="sticky-checkout hide">
+    <div class="container">
+        <div id="checkout_total_clone"><span class="price"></span></div>
+        <?php
+        $_product = $block->getProduct();
+        $mapHelper = $this->helper('Thecommerceshop\Map\Helper\Data');
+        $buttonTitle = __('Add to Cart'); ?>
+        <?php if ($_product->isSaleable()): ?>
+            <?php if(($mapHelper->getMapCategoryId() && in_array($mapHelper->getMapCategoryId(), $_product->getCategoryIds())) && (!$_product->getSpecialPrice() > 0)): ?>
+                <div id="quickview-<?php echo $_product->getId()?>" class="tcs-bt-quickview">
+                    <a data-id="<?php echo $_product->getId()?>" class="tcs-quickview btn btn-action action primary" data-quickview-url="<?php echo $mapHelper->getBaseUrl(); ?>tcs_quickview/catalog_product/view/id/<?php echo $_product->getId()?>" href="javascript:void(0);">
+                    <?php $buttonTitle = $mapHelper->getAddToCartText();?>
+                            <span><?php echo $buttonTitle; ?></span>
+                    </a>
+                </div>
+            <?php else: ?>
+                <div class="actions box-tocart">
+                    <button type="button"
+                            title="<?php /* @escapeNotVerified */ echo $buttonTitle ?>"
+                            class="action primary tocart" id="product-addtocart-button-clone">
+                        <span><?php /* @escapeNotVerified */ echo $buttonTitle ?></span>
+                    </button>
+                    <?php echo $block->getChildHtml('', true) ?>
+                </div>
+            <?php endif; ?>
+        <?php else: ?>
+            <div class="stock unavailable">
+                <span><?= /* @noEscape */ __('Out of stock') ?></span>
+            </div>
+        <?php endif; ?>
+    </div>
+</div>
+<script type="text/javascript">
+require([
+    'jquery'
+], function ($) {
+    $(window).on('load',function(){
+        var p_scrolled = false;
+        var cartButton = '#product-addtocart-button';
+        var QuickviewButton = '#quickview-'+<?php echo $_product->getId();?>;
+        if($(QuickviewButton).length > 0){
+            cartButton = QuickviewButton;
+        }
+        var offset = $(cartButton).length > 0 ? $(cartButton).offset().top : '0';
+        $(window).scroll(function(){
+            if(offset < $(window).scrollTop() && !p_scrolled){
+                p_scrolled = true;
+                var stickyPrice = ($('.product-details .price-box .price').length > 0) ? $('.product-details .price-box .price').html() : $('.product-info-main .product-info-price .price-box .price').html()
+                $('#checkout_total_clone').html('Total: <span>'+stickyPrice+'</span>');
+                $(".sticky-checkout").removeClass("hide");
+                $(cartButton).off("DOMSubtreeModified").on("DOMSubtreeModified",function(){
+                    $(cartButton+"-clone").html($(cartButton).html());
+                    $(cartButton+"-clone").attr("class",$(cartButton).attr("class"));
+                });
+            }
+            if(offset >= $(window).scrollTop() && p_scrolled){
+                p_scrolled = false;
+                $(".sticky-checkout").addClass("hide");
+            }
+        });
+        $(cartButton+"-clone").click(function(){
+            $(cartButton).trigger("click");
+        });
+    });
+    // positionign the page message based on new pdp layout
+    $(document).ready(function() {
+        if($('.catalog-product-view .page.messages') != undefined && $('.catalog-product-view #make_an_offer_show-popup') != undefined){
+            $('.page.messages').insertBefore($('#make_an_offer_show-popup'));console.log('msg data');console.log($.trim($('.page.messages .messages').text())!= '');
+            setTimeout(function() {
+                if($.trim($('.page.messages .messages').text()) != ''){
+                    $('html, body').scrollTop($('.page.messages').offset().top - 50);
+                }
+            }, 1000);
+        }
+    });
+});
+</script>

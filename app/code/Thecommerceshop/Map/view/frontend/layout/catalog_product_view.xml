@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Copyright Â© 2018 Porto. All rights reserved.
+ * See COPYING.txt for license details.
+ */
+-->
+<page layout="2columns-right" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceContainer name="content">
+            <!-- <block class="Thecommerceshop\Map\Block\Product\View" name="product.rules" template="Thecommerceshop_Map::product/view/rules.phtml" after="product.price.final" /> -->
+            <block class="Thecommerceshop\Map\Block\Product\View" name="product.quickview.btn" template="Thecommerceshop_Map::product/view/quickview-btn.phtml" after="product.price.final">
+                <block class="Magento\Catalog\Block\Product\View" name="product.info.addto.quickview" as="addto" template="Magento_Catalog::product/view/addto.phtml">
+                <block class="Magento\Wishlist\Block\Catalog\Product\View\AddTo\Wishlist" name="view.addto.wishlist.quickview" template="Magento_Wishlist::catalog/product/view/addto/wishlist.phtml" />
+                    <block class="Magento\Catalog\Block\Product\View\AddTo\Compare" name="view.addto.compare.quickview" after="view.addto.wishlist.quickview" template="Magento_Catalog::product/view/addto/compare.phtml" >
+                        <arguments>
+                            <argument name="addToCompareViewModel" xsi:type="object">Magento\Catalog\ViewModel\Product\Checker\AddToCompareAvailability</argument>
+                        </arguments>
+                    </block>
+                </block>
+            </block>
+        </referenceContainer>
+
+        <!-- <move element="product.rules" destination="product.info.price" after="product.price.final"/> -->
+        <move element="product.quickview.btn" destination="product.info.price" after="product.price.final"/>
+    </body>
+</page>

@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+	<system>
+		<section id="sizingcalculator" sortOrder="10" showInWebsite="1" showInStore="1" showInDefault="1" translate="label">
+			<label>Sizing Calculators</label>
+			<tab>thecommerceshop</tab>
+			<resource>Thecommerceshop_Pdpnewdesign::config_thecommerceshop_pdpnewdesign</resource>
+			<group id="accalculator" sortOrder="10" showInWebsite="1" showInStore="1" showInDefault="1" translate="label">
+				<label>AC Calculator</label>
+				<field id="categoryids" type="text" sortOrder="10" showInWebsite="1" showInStore="1" showInDefault="1" translate="label">
+					<label>Category IDs</label>
+					<comment>Category IDs - comma separated</comment>
+				</field>
+			</group>
+            <group id="furnacecalculator" sortOrder="30" showInWebsite="1" showInStore="1" showInDefault="1" translate="label">
+				<label>Furnace Calculator</label>
+				<field id="categoryids" type="text" sortOrder="10" showInWebsite="1" showInStore="1" showInDefault="1" translate="label">
+					<label>Category IDs</label>
+					<comment>Category IDs - comma separated</comment>
+				</field>
+			</group>
+            <group id="ductlesscalculator" sortOrder="30" showInWebsite="1" showInStore="1" showInDefault="1" translate="label">
+				<label>Ductless Calculator</label>
+				<field id="categoryids" type="text" sortOrder="10" showInWebsite="1" showInStore="1" showInDefault="1" translate="label">
+					<label>Category IDs</label>
+					<comment>Category IDs - comma separated</comment>
+				</field>
+			</group>
+		</section>
+	</system>
+</config>

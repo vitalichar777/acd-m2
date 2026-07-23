@@ -1,0 +1,74 @@
+<?php 
+$_product = $block->getProduct();
+$baseUrl = $block->getBaseUrl();
+$PdpHelper = $this->helper('Thecommerceshop\Pdpnewdesign\Helper\Data');
+
+//popup configuration
+$buttonText = 'Get help choosing your system size here';
+$popupTitle = 'Get help choosing your system size here';
+
+//category ids for calculator
+$calc = $PdpHelper->getAllCalcCatIds();
+
+//product category ids
+$category_ids = $_product->getCategoryIds();
+$showButton = false;
+$blockId = 'ac-sizing-calculator';
+if(count(array_intersect($calc['ac'], $category_ids)) > 0){
+    $blockId = 'ac-sizing-calculator';
+    $showButton = true;
+}elseif(count(array_intersect($calc['furnace'], $category_ids)) > 0){
+    $blockId = 'furnace-sizing-calculator';
+    $showButton = true;
+}elseif(count(array_intersect($calc['ductless'], $category_ids)) > 0){
+    $blockId = 'ductless-sizing-calculator';
+    $showButton = true;
+}
+?>
+
+<?php if($showButton): ?>
+    <div id="sizing_calc_button" >
+        <a class="tcs-sizingcalc btn btn-action action primary" href="javascript:void(0);">
+            <span><?php echo $buttonText; ?></span>
+        </a>
+    </div>
+    <?= $secureRenderer->renderStyleAsTag('border: 0px solid #369;font-size: 13px;font-weight: 900;color: #073f78;background: #c1ddf6; border-radius:10px;margin:10px 0;', '.tcs-sizingcalc'); ?>
+
+
+    <div id="sizing_calc" style="">
+        <?php echo $this->getLayout()->createBlock('Magento\Cms\Block\Block')->setBlockId($blockId)->toHtml(); ?>
+    </div> 
+    <?= $secureRenderer->renderStyleAsTag('min-height:500px; width:100%', '#sizing_calc'); ?>
+
+    <?php $calcpopup = <<<calcpopup
+        require(
+            [
+                'jquery',
+                'Magento_Ui/js/modal/modal'
+            ],
+            function(
+                $,
+                modal
+            ) {
+                var options = {
+                    type: 'popup',
+                    responsive: true,
+                    innerScroll: true,
+                    title: '$popupTitle',
+                    buttons:[]
+                    // buttons: [{
+                    //     text: $.mage.__('Cancel'),
+                    //     class: 'sizingcalc_cancel',
+                    // }]
+                };
+
+                var popup = modal(options, $('#sizing_calc'));
+                $(".tcs-sizingcalc").on('click',function(){ 
+                    var sizecalc = $("#sizing_calc");
+                    $(sizecalc).modal("openModal");
+                });
+            }
+        );
+    calcpopup;?>
+    <?= /* @noEscape */ $secureRenderer->renderTag('script', ['type' => 'text/javascript'], $calcpopup, false) ?>
+<?php  endif;?>

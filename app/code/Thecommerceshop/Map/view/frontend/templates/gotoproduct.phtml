@@ -1,0 +1,12 @@
+<?php
+/**
+ * @var Magento\Catalog\Block\Product\View\Type\Simple $block
+ */
+?>
+<?php $product = $block->getProduct();
+?>
+<div id="ajax-goto">
+    <a class="goto-product" href="<?php echo $product->getUrlModel()->getUrl($product);?>">
+        <span><?php echo __('Go to Product'); ?></span>
+    </a>
+</div>
