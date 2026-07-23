@@ -45,8 +45,16 @@ require([
         $(window).scroll(function(){
             if(offset < $(window).scrollTop() && !p_scrolled){
                 p_scrolled = true;
-                var stickyPrice = ($('.product-details .price-box .price').length > 0) ? $('.product-details .price-box .price').html() : $('.product-info-main .product-info-price .price-box .price').html()
-                $('#checkout_total_clone').html('Total: <span>'+stickyPrice+'</span>');
+                // Redesign: show the green SALE price (from the "Today's Special Price" card) in the sticky
+                // bar. Fall back to the configured/summary price for products that don't reveal a sale price.
+                var $tcsSale = $('.tcs-price-card__sale').filter(function () {
+                    var t = $.trim($(this).text());
+                    return t !== '' && t !== ' ';
+                }).first();
+                var stickyPrice = $tcsSale.length
+                    ? $tcsSale.text()
+                    : (($('.product-details .price-box .price').length > 0) ? $('.product-details .price-box .price').html() : $('.product-info-main .product-info-price .price-box .price').html());
+                $('#checkout_total_clone').html('Total: <span class="tcs-sticky-total">'+stickyPrice+'</span>');
                 $(".sticky-checkout").removeClass("hide");
                 $(cartButton).off("DOMSubtreeModified").on("DOMSubtreeModified",function(){
                     $(cartButton+"-clone").html($(cartButton).html());
@@ -101,4 +109,7 @@ require([
     text-transform: uppercase; text-decoration: none !important;
 }
 .sticky-checkout .tcs-sticky-buy:hover { background: #262299 !important; }
+/* Redesign: sticky bar total shows the green SALE price */
+.sticky-checkout #checkout_total_clone .tcs-sticky-total,
+.sticky-checkout #checkout_total_clone .tcs-sticky-total .price { color: #00973B !important; font-weight: 700; }
 </style>
