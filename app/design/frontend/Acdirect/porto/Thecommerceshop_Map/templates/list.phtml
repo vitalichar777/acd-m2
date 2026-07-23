@@ -164,11 +164,14 @@ $mapHelper = $this->helper('Thecommerceshop\Map\Helper\Data');
                                             </button>
                                         </form>
                                         <?php endif; ?>
+                                        <?php
+                                            $__reg = $_product->getPriceInfo()->getPrice('regular_price')->getAmount()->getValue();
+                                            $__sale = (float)$mapHelper->getRuleDiscountforCustomAmount($_product->getId(), $__reg);
+                                        ?>
                                         <div id="quickview-<?php echo $_product->getId()?>" class="tcs-bt-quickview">
-                                            <a class="tcs-quickview btn btn-action action primary" data-quickview-url="<?php echo $mapHelper->getBaseUrl(); ?>tcs_quickview/catalog_product/view/id/<?php echo $_product->getId()?>" href="javascript:void(0);">
-                                            <?php  $buttontext = 'Add to Cart';
-                                            if(($mapHelper->getMapCategoryId() && in_array($mapHelper->getMapCategoryId(), $_product->getCategoryIds())) && (!$_product->getSpecialPrice() > 0)){$buttontext = $mapHelper->getAddToCartText();}?>
-                                            <span><?php echo $buttontext; ?></span>
+                                            <a class="tcs-viewbuy btn btn-action action primary" href="<?php echo $_product->getProductUrl(); ?>">
+                                                <span class="tcs-viewbuy__text">View &amp; Buy Now</span>
+                                                <span class="tcs-viewbuy__arrow"><svg xmlns="http://www.w3.org/2000/svg" width="25" height="12" viewBox="0 0 25 12" fill="none"><path d="M24.5303 6.05328C24.8232 5.76039 24.8232 5.28551 24.5303 4.99262L19.7574 0.219648C19.4645 -0.073245 18.9896 -0.073245 18.6967 0.219648C18.4038 0.512542 18.4038 0.987415 18.6967 1.28031L22.9393 5.52295L18.6967 9.76559C18.4038 10.0585 18.4038 10.5334 18.6967 10.8263C18.9896 11.1191 19.4645 11.1191 19.7574 10.8263L24.5303 6.05328ZM0 5.52295V6.27295H24V5.52295V4.77295H0V5.52295Z" fill="#F7D23D"/></svg></span>
                                             </a>
                                         </div>
                                         <?php // }?>
@@ -297,17 +300,32 @@ $mapHelper = $this->helper('Thecommerceshop\Map\Helper\Data');
                                    class="action more"><?php echo __('Learn More') ?></a>
                             </div>
                         <?php endif; ?>
-                        <?php if(($mapHelper->getMapCategoryId() && in_array($mapHelper->getMapCategoryId(), $_product->getCategoryIds())) && (!$_product->getSpecialPrice() > 0)){?>
-                            <?php echo $this->getLayout()->createBlock('Magento\Cms\Block\Block')->setBlockId($mapHelper->getPriceLabelBlockId())->toHtml(); ?>
-                            <?php if($_category_config['product_price']): ?>
-                            <?php echo "<div class='pricebox-line-through'>".$block->getProductPrice($_product)."</div>" ?>
-                            <?php endif; ?>
-                        <?php } else{ ?>
-                            <?php if($_category_config['product_price']): ?>
-                            <?php echo $block->getProductPrice($_product) ?>
-                            <?php endif; ?>
-                        <?php } ?>
-                        <?php echo $block->getProductDetailsHtml($_product); ?>
+                        <?php
+                            /* Card price: only Goodman / Daikin (by title) reveal the sale price openly
+                               (compare struck + sale green). All other brands show the regular price only. */
+                            $__isOpen = (stripos($_product->getName(), 'goodman') !== false) || (stripos($_product->getName(), 'daikin') !== false) || (stripos($_product->getName(), 'mrcool') !== false);
+                            $__isMap = ($mapHelper->getMapCategoryId() && in_array($mapHelper->getMapCategoryId(), $_product->getCategoryIds())) && (!$_product->getSpecialPrice() > 0);
+                            $__reg  = $_product->getPriceInfo()->getPrice('regular_price')->getAmount()->getValue();
+                            if($__isMap){
+                                $__sale = (float)$mapHelper->getRuleDiscountforCustomAmount($_product->getId(), $__reg);
+                            } else {
+                                $__sale = (float)$_product->getPriceInfo()->getPrice('final_price')->getAmount()->getValue();
+                            }
+                            $__hasSale = ($__sale > 0 && $__sale < $__reg);
+                        ?>
+                            <div class="tcs-card-price">
+                                <?php if($__isOpen): ?>
+                                    <?php if($__hasSale): ?>
+                                        <span class="tcs-card-price__compare">$<?php echo number_format($__reg, 2); ?></span>
+                                        <span class="tcs-card-price__sale">$<?php echo number_format($__sale, 2); ?></span>
+                                    <?php else: ?>
+                                        <span class="tcs-card-price__sale">$<?php echo number_format($__reg, 2); ?></span>
+                                    <?php endif; ?>
+                                <?php else: ?>
+                                    <?php /* Non-Goodman/Daikin: red slashed compare price only, no green sale. */ ?>
+                                    <span class="tcs-card-price__compare">$<?php echo number_format($__reg, 2); ?></span>
+                                <?php endif; ?>
+                            </div>
                         <div id='saving-price-label-<?php echo $_product->getId()?>' style = "color: #0c0;font-weight: bold;"></div>
                         <script>
                             if(document.getElementById('old-price-<?php echo $_product->getId()?>') != null || document.getElementById('old-price-<?php echo $_product->getId()?>') != undefined){
@@ -351,33 +369,12 @@ $mapHelper = $this->helper('Thecommerceshop\Map\Helper\Data');
                                             </button>
                                             </form>
                                           <?php } else { */ ?> 
-                                        <?php if (($mapHelper->getMapCategoryId() && in_array($mapHelper->getMapCategoryId(), $_product->getCategoryIds())) && (!$_product->getSpecialPrice() > 0)){ ?>
                                         <div id="quickview-<?php echo $_product->getId()?>" class="tcs-bt-quickview">
-                                            <a data-id="<?php echo $_product->getId()?>" class="tcs-quickview btn btn-action action primary" data-quickview-url="<?php echo $mapHelper->getBaseUrl(); ?>tcs_quickview/catalog_product/view/id/<?php echo $_product->getId()?>" href="javascript:void(0);">
-                                            <?php $buttontext = $mapHelper->getAddToCartText();
-                                                $buttontext = isset($buttontext)? $buttontext : 'View Lowest Price';?>
-                                            <span><?php echo $buttontext; ?></span>
+                                            <a data-id="<?php echo $_product->getId()?>" class="tcs-viewbuy btn btn-action action primary" href="<?php echo $_product->getProductUrl(); ?>">
+                                                <span class="tcs-viewbuy__text">View &amp; Buy Now</span>
+                                                <span class="tcs-viewbuy__arrow"><svg xmlns="http://www.w3.org/2000/svg" width="25" height="12" viewBox="0 0 25 12" fill="none"><path d="M24.5303 6.05328C24.8232 5.76039 24.8232 5.28551 24.5303 4.99262L19.7574 0.219648C19.4645 -0.073245 18.9896 -0.073245 18.6967 0.219648C18.4038 0.512542 18.4038 0.987415 18.6967 1.28031L22.9393 5.52295L18.6967 9.76559C18.4038 10.0585 18.4038 10.5334 18.6967 10.8263C18.9896 11.1191 19.4645 11.1191 19.7574 10.8263L24.5303 6.05328ZM0 5.52295V6.27295H24V5.52295V4.77295H0V5.52295Z" fill="#F7D23D"/></svg></span>
                                             </a>
                                         </div>
-                                        <?php }else{ ?>
-                                            <form data-role="tocart-form" action="<?php echo $postParams['action'] ;?>" method="post">
-                                                <input type="hidden" name="product" value="<?php echo $postParams['data']['product']; ?>">
-                                                <input type="hidden" name="<?php echo Action::PARAM_NAME_URL_ENCODED; ?>" value="<?php echo $postParams['data'][Action::PARAM_NAME_URL_ENCODED]; ?>">
-                                                <?php if(isset($_category_config['qty_field']) && $_category_config['qty_field']):?>
-                                                    <div class="qty-box">
-                                                        <a href="javascript:void(0)" class="qtyminus"><i class="porto-icon-minus"></i></a>
-                                                        <input type="text" name="qty" id="qty" maxlength="12" value="<?php /* @escapeNotVerified */ echo $block->getProductDefaultQty() * 1 ?>" title="<?php /* @escapeNotVerified */ echo __('Qty') ?>" class="input-text qty" data-validate="<?php echo $block->escapeHtml(json_encode($block->getQuantityValidators())) ?>"/>
-                                                        <a href="javascript:void(0)" class="qtyplus"><i class="porto-icon-plus"></i></a>
-                                                    </div>
-                                                <?php endif;?>
-                                                <?php echo $block->getBlockHtml('formkey')?>
-                                                <button type="submit"
-                                                        title="<?php echo $block->escapeHtml(__('Add to Cart')); ?>"
-                                                        class="action tocart primary">
-                                                    <span><?php  echo $block->escapeHtml(__('Add to Cart')); ?> </span>
-                                                </button>
-                                            </form>
-                                      <?php  } ?>
                                     <?php else: ?>
                                         <?php if ($_product->getIsSalable()): ?>
                                             <div class="stock available"><span><?php echo __('In stock') ?></span></div>

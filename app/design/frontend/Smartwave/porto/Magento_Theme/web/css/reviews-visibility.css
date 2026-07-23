@@ -1,0 +1,20 @@
+/**
+ * Hide the TargetBay reviews widget until a product actually has reviews.
+ *
+ * The widget (.targetbay-reviews-count-field) is injected client-side by TargetBay.
+ * When a product has no reviews the star's aria-label is "0 star product review".
+ * We hide the whole field with display:none in that case; when TargetBay updates the
+ * rating to a non-zero value, :has() re-evaluates and the field shows with its natural
+ * display. Using display:none (instead of opacity) fully removes it from layout.
+ */
+.targetbay-reviews-count-field:has(.targetbay-reviews-count-star[aria-label^="0 star"]) {
+    display: none !important;
+}
+
+/* TargetBay reviews: brand the action button blue (was black). */
+#tbSiteReviews .tbSiteDefaultButtonColor,
+#tbSiteReviews .tbSiteDefaultButtonColor:hover,
+#tbSiteReviews .tbSiteReviews-actionButton .tbSiteReviews-openButton svg.tbsite-review-rating {
+    background-color: #007BFF !important;
+    border: 1px solid #007BFF !important;
+}

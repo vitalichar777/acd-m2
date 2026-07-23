@@ -7,10 +7,10 @@
         $buttonTitle = __('Add to Cart'); ?>
         <?php if ($_product->isSaleable()): ?>
             <?php if(($mapHelper->getMapCategoryId() && in_array($mapHelper->getMapCategoryId(), $_product->getCategoryIds())) && (!$_product->getSpecialPrice() > 0)): ?>
-                <div id="quickview-<?php echo $_product->getId()?>" class="tcs-bt-quickview">
-                    <a data-id="<?php echo $_product->getId()?>" class="tcs-quickview btn btn-action action primary" data-quickview-url="<?php echo $mapHelper->getBaseUrl(); ?>tcs_quickview/catalog_product/view/id/<?php echo $_product->getId()?>" href="javascript:void(0);">
-                    <?php $buttonTitle = $mapHelper->getAddToCartText();?>
-                            <span><?php echo $buttonTitle; ?></span>
+                <?php /* Redesign: sticky bar shows a blue "Add to Cart" (buys directly via __tcsBuyNow) instead of the MAP "View Lowest Price" quickview. */ ?>
+                <div id="quickview-<?php echo $_product->getId()?>" class="tcs-bt-quickview tcs-sticky-buy-wrap">
+                    <a data-id="<?php echo $_product->getId()?>" class="tcs-sticky-buy btn btn-action action primary" href="javascript:void(0);" role="button">
+                            <span><?php echo __('Add to Cart'); ?></span>
                     </a>
                 </div>
             <?php else: ?>
@@ -61,6 +61,16 @@ require([
         $(cartButton+"-clone").click(function(){
             $(cartButton).trigger("click");
         });
+        // Redesign sticky "Add to Cart": buy directly (same flow as the main blue ATC), no quickview popup.
+        $(document).on('click', '.sticky-checkout .tcs-sticky-buy', function (e) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            if (typeof window.__tcsBuyNow === 'function') {
+                window.__tcsBuyNow();
+            } else {
+                $('#product_addtocart_form').trigger('submit');
+            }
+        });
     });
     // positionign the page message based on new pdp layout
     $(document).ready(function() {
@@ -75,3 +85,20 @@ require([
     });
 });
 </script>
+<style>
+/* Redesign: sticky bar "Add to Cart" — blue, matching the main product-page blue ATC. */
+.sticky-checkout .tcs-sticky-buy,
+.sticky-checkout .tcs-sticky-buy:hover,
+.sticky-checkout .tcs-sticky-buy:focus,
+.sticky-checkout .tcs-sticky-buy:active {
+    display: flex !important; align-items: center; justify-content: center;
+    width: 100%; box-sizing: border-box;
+    background: #2F2BBC !important; color: #fff !important;
+    border: 0 !important; border-radius: 8px;
+    padding: 12px 16px !important; margin: 0 !important;
+    font-family: 'Open Sans', sans-serif !important;
+    font-size: 15px !important; font-weight: 600 !important; line-height: 1.2 !important;
+    text-transform: uppercase; text-decoration: none !important;
+}
+.sticky-checkout .tcs-sticky-buy:hover { background: #262299 !important; }
+</style>

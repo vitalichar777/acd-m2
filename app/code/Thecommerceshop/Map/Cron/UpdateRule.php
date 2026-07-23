@@ -222,14 +222,22 @@ class UpdateRule
      */
     public function getRuleData($product){
         $RuleCollection = $this->getRuleCollection();
+        // Only per-product price discounts represent the MAP "lowest price". Order-level
+        // promos (cart_fixed $ off, buy_x_get_y, etc.) are not a product discount and are the
+        // only actions the display block (getRuleDiscount) can render, so anything else is
+        // skipped — otherwise a $75 "cart_fixed" promo with a low sort_order wrongly wins here.
+        $allowedActions = ['by_percent', 'by_fixed'];
         $ruleData = [];
         foreach($RuleCollection as $rule)
-        {              
+        {
+            if(!in_array($rule->getSimpleAction(), $allowedActions)){
+                continue;
+            }
             $isvalid  = $this->_validate($rule, $product);
             if($isvalid){
                 $customerGroupIds = implode(',', $rule->getCustomerGroupIds());
                 $ruleData[] = ['rule_id'=>$rule->getId(), 'discount_type'=>$rule->getSimpleAction(), 'discount'=>$rule->getDiscountAmount(), 'sort_order'=>$rule->getSortOrder(), 'customer_group'=>$customerGroupIds];
-            }            
+            }
         }
         if(count($ruleData) >= 1){
             array_multisort( array_column($ruleData, "sort_order"), SORT_ASC, $ruleData );

@@ -1,0 +1,34 @@
+<?php
+/**
+ * Redesign: collection-card price + "View & Buy Now" button styles.
+ * The MAP cards now show the compare + sale price directly and link straight to the product page
+ * (no popup). Included on category + search pages.
+ */
+?>
+<style>
+/* Collection card: compare (was) + sale price */
+.tcs-card-price { margin: 8px 0 10px; line-height: 1.15; font-family: 'Open Sans', sans-serif; }
+.tcs-card-price__compare { display: block; font-size: 20px; font-weight: 700; color: #EE2D43; text-decoration: line-through; }
+.tcs-card-price__sale { display: block; font-size: 25px; font-weight: 700; color: #00973B; }
+
+/* "View & Buy Now" button (links straight to the product page) */
+.tcs-bt-quickview .tcs-viewbuy,
+.tcs-bt-quickview .tcs-viewbuy:hover,
+.tcs-bt-quickview .tcs-viewbuy:focus,
+.tcs-bt-quickview .tcs-viewbuy:active {
+    display: flex !important; align-items: center; justify-content: center; gap: 10px;
+    width: 100%; box-sizing: border-box;
+    background: #2F2BBC !important; color: #F7D23D !important;
+    border: 0 !important; border-radius: 10px !important;
+    padding: 13px 18px !important;
+    font-family: 'Open Sans', sans-serif !important;
+    font-size: 16px !important; font-weight: 700 !important; line-height: 1.2 !important;
+    text-transform: uppercase; text-decoration: none !important; letter-spacing: .3px;
+}
+.tcs-bt-quickview .tcs-viewbuy:hover { background: #262299 !important; }
+.tcs-bt-quickview .tcs-viewbuy:before { content: none !important; display: none !important; }
+.tcs-viewbuy__text { color: #F7D23D !important; }
+.tcs-viewbuy__arrow { flex: 0 0 auto; display: inline-flex; align-items: center; }
+.tcs-viewbuy__arrow svg { display: block; width: 18px; height: auto; }
+.tcs-viewbuy__arrow svg path { fill: #fff !important; }
+</style>

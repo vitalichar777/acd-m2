@@ -24,6 +24,11 @@ class LoadBefore implements \Magento\Framework\Event\ObserverInterface
             $layout = $observer->getData('layout');
             $layout->getUpdate()->addHandle('catalog_product_view_pdpnewdesign');
             $layout->getUpdate()->addHandle('catalog_product_view_type_bundle_pdpnewdesign');
+            // Keep the redesign on the product page only: the collection-page quickview reverts
+            // the bundle widget to the old template (added last so its setTemplate wins).
+            if($fullActionName == 'tcs_quickview_catalog_product_view'){
+                $layout->getUpdate()->addHandle('catalog_product_view_type_bundle_pdpnewdesign_qv');
+            }
        }
         return $this;
     }

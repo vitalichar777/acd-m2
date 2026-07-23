@@ -17,19 +17,14 @@
                     <argument name="block_id" xsi:type="string">free_ship_image</argument>
                 </arguments>
             </block>
-             <block class="Magento\Cms\Block\Block" name="shipping_feature">
-                <arguments>
-                    <argument name="block_id" xsi:type="string">pdp_page_shipping_feature</argument>
-                </arguments>
-            </block>
-            <block class="Magento\Cms\Block\Block" name="no_credit_banners">
-                <arguments>
-                    <argument name="block_id" xsi:type="string">pdp_page_interest_blk</argument>
-                </arguments>
-            </block>
+            <!-- Redesign: old "Free Shipping…" shipping-features section removed entirely (replaced by the financing banners) -->
+            <!-- Redesign: financing banners rebuilt as a coded template (was CMS block pdp_page_interest_blk) -->
+            <block class="Magento\Framework\View\Element\Template" name="no_credit_banners" template="Thecommerceshop_Pdpnewdesign::product/view/financing_banners.phtml"/>
             <block class="Magento\Catalog\Block\Product\View" name="custom.attribute.newdesign" template="Thecommerceshop_Pdpnewdesign::product/view/custom_attribute.phtml"/>
             <block class="Magento\Catalog\Block\Product\View" name="custom.attribute.newdesign.mobile" template="Thecommerceshop_Pdpnewdesign::product/view/custom_attribute.phtml"/>
             <block class="Magento\Catalog\Block\Product\View" name="sizing.calculator.button" template="Thecommerceshop_Pdpnewdesign::product/view/sizing_calc_button.phtml"/>
+            <!-- Redesign: upsell wrapper inside #maincontent, above the description tabs (upsell moved in below; JS move in config.phtml disabled) -->
+            <container name="main.upsell.product.detail" htmlTag="div" htmlClass="main-upsell-product-detail" before="product.info.details"/>
         </referenceContainer>
         <referenceBlock name="product.info.main">
 		    <block class="Neklo\MakeAnOffer\Block\Request\Form" name="product.view.extra.simple.bottom" template="Neklo_MakeAnOffer::button.phtml"/>
@@ -65,8 +60,12 @@
             <block class="Magento\Catalog\Block\Product\View" name="sticky.addtocart" template="Thecommerceshop_Pdpnewdesign::product/view/stickyaddtocart.phtml" before="-"/>
         </referenceContainer>
         <move element="free_shipping_logo" destination="content" before="product.info.main"/>
-        <move element="no_credit_banners" destination="content" after="product.info.main"/>
-        <move element="product.view.extra.simple.bottom" destination="product.info.main" before="shipping_feature"/>
+        <!-- Redesign: financing banners moved into the product form (replaces the shipping-features section, which is hidden via CSS) -->
+        <move element="no_credit_banners" destination="product.info.main" after="-"/>
+        <!-- Redesign: move the upsell into the content wrapper above the tabs (server-side) -->
+        <move element="product.info.upsell" destination="main.upsell.product.detail"/>
+        <move element="main.upsell.product.detail" destination="content" after="product.info.main"/>
+        <move element="product.view.extra.simple.bottom" destination="product.info.main" after="-"/>
         <move element="product.info.review" destination="product.info.main" before="product.info.stock.sku.newdesign"/>
         <move element="product.info.overview" destination="product.info.main" after="product.info.stock.sku.newdesign"/>
         <move element="custom.attribute.newdesign" destination="product.info.media" after="-"/>

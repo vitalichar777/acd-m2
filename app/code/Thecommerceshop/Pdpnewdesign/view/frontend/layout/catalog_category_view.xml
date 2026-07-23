@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Redesign: add the collection-page "View Lowest Price" price popup (centered, with a
+ * "View Product" CTA) to category listing pages.
+ */
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceContainer name="before.body.end">
+            <block class="Magento\Framework\View\Element\Template" name="tcs.lowest.price.popup" template="Thecommerceshop_Pdpnewdesign::product/list/lowest_price_popup.phtml"/>
+        </referenceContainer>
+    </body>
+</page>

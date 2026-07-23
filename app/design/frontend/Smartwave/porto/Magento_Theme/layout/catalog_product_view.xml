@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Product-page CSS deferral (perf): move the predictive-search autocomplete stylesheet
+ * (~72KB, only needed when the search dropdown is used) out of the render-blocking <head>
+ * and load it after idle via Magento_Theme/js/defer-css.js, so first paint and the
+ * bundle-form widget init are not blocked. Scoped to product pages.
+ */
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <head>
+        <remove src="Conversionbox_Predictivesearch::css/typesense.css"/>
+        <script src="Magento_Theme::js/defer-css.js" defer="true"/>
+        <!-- Hide the TargetBay reviews widget until the product has reviews -->
+        <css src="Magento_Theme::css/reviews-visibility.css"/>
+    </head>
+</page>

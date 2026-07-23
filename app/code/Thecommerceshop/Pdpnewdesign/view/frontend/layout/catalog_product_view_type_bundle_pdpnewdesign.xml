@@ -9,7 +9,8 @@
         <referenceBlock name="aslowas.end.product.info" remove="true"/>
         <move element="product.info.addtocart.bundle" destination="bundle.summary" after="product.price.render.bundle.customization"/>
 <!--        <move element="product.quickview.btn" destination="bundle.summary" after="product.price.render.bundle.customization"/> -->
-        <move element="aslowas.bundle" destination="bundle.summary" before="product.price.render.bundle.customization"/>
+        <!-- Redesign: affirm rendered by the bundle-options template (getChildHtml), right under the top price block. -->
+        <move element="aslowas.bundle" destination="product.info.bundle.options"/>
         <referenceBlock name="product.info.bundle.options">
             <action method="setTemplate">
                 <argument name="template" xsi:type="string">Thecommerceshop_Pdpnewdesign::product/view/type/bundle/options.phtml</argument>

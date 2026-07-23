@@ -9,7 +9,27 @@
 <?php
 $product = $block->getProduct();
 
+/* Product-dependent pricing: only Goodman / Daikin products (by title) show open pricing with this
+   template. Every other brand uses the MAP / hidden-price template (options_map.phtml): competitor
+   price + a green "Unlock Lowest Price" pill that scrolls to the Add-to-Cart button (no popup). */
+$tcsName = strtolower((string)$product->getName());
+$tcsOpenPrice = (strpos($tcsName, 'goodman') !== false) || (strpos($tcsName, 'daikin') !== false) || (strpos($tcsName, 'mrcool') !== false);
+if (!$tcsOpenPrice) {
+    echo $this->fetchView($this->getTemplateFile('Thecommerceshop_Pdpnewdesign::product/view/type/bundle/options_map.phtml'));
+    return;
+}
+
 $categoryIds = $product->getCategoryIds();
+
+/* Redesign: is this a MAP product? (MAP category AND no special price). Non-MAP bundle products get a
+   marker class so the bottom price section mirrors the MAP layout (compare price only, styled ATC). */
+$tcsIsMap = false;
+try {
+    $tcsMapHelper = $this->helper(\Thecommerceshop\Map\Helper\Data::class);
+    $tcsMapCat = $tcsMapHelper->getMapCategoryId();
+    $tcsIsMap = ($tcsMapCat && in_array($tcsMapCat, $categoryIds)) && (!$product->getSpecialPrice() > 0);
+} catch (\Throwable $e) { $tcsIsMap = false; }
+
 $warrantyStatus = false;
 if($categoryIds && count($categoryIds)>0){
     $Warrantyhelper = $this->helper(Thecommerceshop\Warranty\Helper\Data::class);
@@ -22,6 +42,9 @@ $options = $block->decorateArray($block->getOptions($stripSelection));
 ?>
 <?php if ($product->isSaleable()) :?>
     <?php if (count($options)) : ?>
+<?php if (!$tcsIsMap): ?>
+<script>document.documentElement.classList.add('tcs-nonmap-bundle'); if (document.body) { document.body.classList.add('tcs-nonmap-bundle'); }</script>
+<?php endif; ?>
 <script type="text/x-magento-init">
     {
         "#product_addtocart_form": {
@@ -33,7 +56,203 @@ $options = $block->decorateArray($block->getOptions($stripSelection));
     }
 </script>
 
+<?php
+/* Redesign: MAP discount data for the CTA hover price popup (regular / sale / save).
+   getRuleDiscount() renders .mPrice[data-price][data-disvalue][data-distype], .mSpecialPrice, .SavePrice. */
+$tcsMapDiscount = '';
+try {
+    $tcsMapDiscount = $this->getLayout()->createBlock(\Thecommerceshop\Map\Block\Product\View::class)->getRuleDiscount($product);
+} catch (\Throwable $e) {
+    $tcsMapDiscount = '';
+}
+?>
+<?php if ($tcsMapDiscount): ?>
+<div class="tcs-map-data" style="display:none" aria-hidden="true"><?= /* @noEscape */ $tcsMapDiscount ?></div>
+<?php endif; ?>
+
+<script type="text/javascript">
+require(['jquery', 'domReady!'], function ($) {
+    // Add the configured bundle to cart via the PDP form. The global cart drawer
+    // (Thecommerceshop_Pdpnewdesign::html/cart_drawer.phtml) opens automatically on ajax:addToCart.
+    window.__tcsBuyNow = function () {
+        var $form = $('#product_addtocart_form');
+        if (!$form.length) { return; }
+        $form.trigger('submit'); // runs mage validation + catalogAddToCart AJAX
+    };
+
+    // Big blue CTA (the "View Lowest Price" quickview <a>): suppress the quickview popup and buy directly.
+    // Capture phase runs before the document-delegated quickview handler, so stopping propagation prevents the popup.
+    document.querySelectorAll('.block-bundle-summary .tcs-bt-quickview > a.tcs-quickview').forEach(function (el) {
+        el.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            window.__tcsBuyNow();
+        }, true);
+    });
+});
+</script>
+
+<script type="text/javascript">
+require(['jquery', 'domReady!'], function ($) {
+    // Accessories: default optional dropdown(s) to "Do not need one"; for a REQUIRED accessory option
+    // with no "Do not need one", auto-select the first real option so the configured price is complete
+    // and matches the collection-page price.
+    $('.tcs-bundle-group--optional select.bundle-option-select').each(function () {
+        var $sel = $(this);
+        if ($sel.val()) { return; } // leave any pre-selected value alone
+        var $dnn = $sel.find('option').filter(function () {
+            return $.trim($(this).text()).toLowerCase().indexOf('do not need') === 0;
+        }).first();
+        if ($dnn.length) {
+            $sel.val($dnn.val()).trigger('change');
+        } else if ($sel.closest('.field.option').hasClass('required')) {
+            var $first = $sel.find('option').filter(function () { return $.trim(this.value) !== ''; }).first();
+            if ($first.length) { $sel.val($first.val()).trigger('change'); }
+        }
+    });
+
+    // Show helper notes under specific accessory options only, matched by the option label keyword.
+    var TCS_OPT_NOTES = [
+        { match: 'heat', html: "Heat pumps lose efficiency below ~25&deg;F. A heat kit adds electric backup for the coldest days. Most homes this size choose 8&ndash;10 kW." },
+        { match: 'thermostat', html: "Note: This system requires a compatible Goodman or Daikin communicating thermostat to operate properly. Standard thermostats are not supported." }
+    ];
+    $('.tcs-bundle-group--optional .field.option').each(function () {
+        var $opt = $(this);
+        if ($opt.find('.tcs-optional-note').length) { return; }
+        var label = $.trim($opt.find('> label.label, .label').first().text()).toLowerCase();
+        for (var i = 0; i < TCS_OPT_NOTES.length; i++) {
+            if (label.indexOf(TCS_OPT_NOTES[i].match) !== -1) {
+                $opt.append("<p class='tcs-optional-note'>" + TCS_OPT_NOTES[i].html + "</p>");
+                break;
+            }
+        }
+    });
+
+    // Warranty: show only 3 / 5 / 10 Year cards.
+    var $warr = $('.warranty_options');
+    if ($warr.length) {
+        $warr.find('.field.choice').each(function () {
+            var $c = $(this);
+            var name = $.trim($c.find('.product-name').text());
+            if (!/^(3|5|10)\s*year/i.test(name)) { $c.addClass('tcs-warr-hide'); }
+        });
+        // mark the last visible card (10 Year) so it can span full width in the 2+1 layout
+        $warr.find('.field.choice:not(.tcs-warr-hide)').last().addClass('tcs-warr-full');
+        // start with no warranty selected (a "None"/decline selection should exist in the option for
+        // required warranties so Add to Cart works without forcing a paid warranty)
+        $warr.find('input[type="radio"]:checked').prop('checked', false).trigger('change');
+    }
+
+    // Move the feature-list block (pdp_btmblk) to sit right below the Included group.
+    var $feat = $('.product-info-main .pdp_btmblk').first();
+    var $inc = $('.tcs-bundle-group--included').first();
+    if ($feat.length && $inc.length) { $inc.after($feat); }
+
+    // Warranty: clicking an already-selected card unselects it (radios normally can't be un-checked).
+    // Bind to the CARD (so it fires for clicks on the label/price too) and capture the pre-click state.
+    $(document).on('mousedown', '.warranty_options .field.choice', function () {
+        var r = this.querySelector('input[type="radio"]');
+        $(this).data('wasChecked', !!(r && r.checked));
+    });
+    $(document).on('click', '.warranty_options .field.choice', function () {
+        if (!$(this).data('wasChecked')) { return; }
+        $(this).data('wasChecked', false);
+        var r = this.querySelector('input[type="radio"]');
+        var $warr = $(this).closest('.warranty_options');
+        // Defer so this wins over the browser default + priceBundle's own click/change handlers.
+        setTimeout(function () {
+            // Select the hidden "None" radio (value="") so priceBundle recalculates WITHOUT the warranty price.
+            var $none = $warr.find('input[type="radio"]').filter(function () { return this.value === ''; }).first();
+            if ($none.length) {
+                $none.prop('checked', true).trigger('change');
+            } else if (r) {
+                r.checked = false; jQuery(r).trigger('change');
+            }
+        }, 0);
+    });
+});
+</script>
+
+<style>
+/* Redesign: "Today's Special Price" — yellow card (label + sale) with the compare price OUTSIDE it */
+.tcs-price-block { display: inline-flex; align-items: center; gap: 14px; font-family: 'Open Sans', sans-serif; }
+.tcs-price-card {
+    display: inline-flex; flex-direction: column; align-items: flex-start; gap: 2px;
+    border: 1px solid #F7D23D; background: #FFFBE6; border-radius: 12px;
+    padding: 8px 16px;
+}
+.tcs-price-card__label { font-size: 12px; font-weight: 700; color: #00973B; text-transform: uppercase; letter-spacing: .02em; }
+.tcs-price-card__sale { font-size: 30px; font-weight: 700; color: #00973B; line-height: 1.1; white-space: nowrap; }
+.tcs-price-card__sale .price { color: #00973B !important; }
+/* nudge the compare down so it lines up with the big sale price (not the label above it) */
+.tcs-price-card__compare { font-size: 20px; font-weight: 700; color: #EE2D43; text-decoration: line-through; white-space: nowrap; transform: translateY(9px); }
+.tcs-optional-note { font-size: 12px; line-height: 18px; margin-top: 10px; }
+</style>
+<script type="text/javascript">
+require(['jquery', 'domReady!'], function ($) {
+    var pid = <?= (int)$product->getId() ?>;
+    if (!$('.tcs-price-block').length) { return; }
+
+    function money(n) { return '$' + n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+
+    function num(txt) { return parseFloat((txt || '').replace(/[^0-9.]/g, '')); }
+
+    function compute() {
+        var $mp = $('.tcs-map-data .mPrice');
+        var disvalue = $mp.length ? parseFloat($mp.attr('data-disvalue')) : NaN;
+
+        // MAP product: hidden "lowest price" discount from map_discount.
+        // base = regular - warranties; save = pct ? base*disvalue/100 : base-disvalue; sale = base - save + warranties.
+        if ($mp.length && !isNaN(disvalue) && disvalue > 0) {
+            var distype = parseInt($mp.attr('data-distype'), 10) || 1;
+            var $reg = $('#product-price-' + pid + ' .price').first();
+            var regular = $reg.length ? num($reg.text()) : parseFloat($mp.attr('data-price'));
+            if (isNaN(regular) || regular <= 0) { return null; }
+            var warranties = 0;
+            $('.warranty_options input[type="radio"]:checked, .warranty_options input[type="checkbox"]:checked').each(function () {
+                var pc = $(this).closest('.field.choice').find('.price-container [data-price-amount]');
+                if (pc.length) { var p = parseFloat(pc.attr('data-price-amount')); if (!isNaN(p)) { warranties += p; } }
+            });
+            var base = regular - warranties;
+            var save = (distype === 1) ? (base * disvalue / 100) : (base - disvalue);
+            if (save < 0) { save = 0; }
+            var sale = base - save + warranties;
+            var pct = (distype === 1) ? Math.round(disvalue) : Math.round(save / regular * 100);
+            return { regular: regular, sale: sale, save: save, pct: pct };
+        }
+
+        // Non-MAP product: use the live bundle price box — sale = configured (final) price, compare = "was" (old) price.
+        var saleN = num($('#product-price-' + pid + ' .price').first().text());
+        var regN = num($('#old-price-configured-' + pid + ' .price').first().text());
+        if (isNaN(saleN) || saleN <= 0) { return null; }
+        if (isNaN(regN) || regN < saleN) { regN = saleN; }
+        var saveN = regN - saleN;
+        var pctN = regN > 0 ? Math.round(saveN / regN * 100) : 0;
+        return { regular: regN, sale: saleN, save: saveN, pct: pctN };
+    }
+
+    // Render the "Today's Special Price" blocks (top + bottom) with the live sale + compare price.
+    function renderCards() {
+        var d = compute();
+        var $blocks = $('.tcs-price-block');
+        if (!d) { $blocks.css('visibility', 'hidden'); return; }
+        $blocks.css('visibility', 'visible');
+        $('.tcs-price-card__sale').text(money(d.sale));
+        $('.tcs-price-card__compare').text(d.regular > d.sale ? money(d.regular) : '');
+    }
+    window.__tcsRenderCards = renderCards;
+    renderCards();
+    var target = document.getElementById('product-price-' + pid);
+    if (target && window.MutationObserver) {
+        new MutationObserver(function () { renderCards(); })
+            .observe(target, { childList: true, subtree: true, characterData: true });
+    }
+    $(document).on('change', '#product_addtocart_form', function () { setTimeout(renderCards, 80); });
+});
+</script>
+
 <?php $includedOpt = $optionalOPt = $warrantyOpt = $fullOpt = '';
+            $includedCount = 0;
             foreach ($options as $option) : ?>
                 <?php
                 if (!$option->getSelections()) {
@@ -41,6 +260,7 @@ $options = $block->decorateArray($block->getOptions($stripSelection));
                 } else {
                     if((count($option->getSelections()) == 1) && $option->getRequired()){
                         $includedOpt .=  $block->getOptionHtml($option);
+                        $includedCount++;
                     }elseif($Warrantyhelper->validateWarrantyCategory($option->getId()) === true){
                         $warrantyOpt .= $block->getOptionHtml($option);
                     }else{
@@ -50,26 +270,57 @@ $options = $block->decorateArray($block->getOptions($stripSelection));
                 ?>
             <?php endforeach; ?>
         <fieldset class="fieldset fieldset-bundle-options">
-<?php if($optionalOPt != ''){ ?>
-            <legend id="customizeTitle" class="legend title">
-                <span><?= $block->escapeHtml(__('Customize your Product')) ?></span>
-            </legend><br />
-            <div class="choose_pdp">
-                <span>(Please choose the options below and add to cart)</span>
-                <p class="required_pdp">* Required Selection</p>
-           </div>
-<?php } ?>
-                <?php $fullOpt = ($includedOpt == '') ? $includedOpt : "<div data-role='collapsible' class='collapsible_title'>See what is Included <div data-role='trigger' class='collapsible_icon'></div></div><div data-role='content' class='option_included'>".$includedOpt."</div>";
-                $fullOpt .= ($optionalOPt == '') ? $optionalOPt : "<div data-role='collapsible' class='collapsible_title'>Required Accessories / Units <div data-role='trigger' class='collapsible_icon'></div></div><div data-role='content' class='option_optional'>".$optionalOPt."</div>";
+            <?php $tcsPid = (int)$product->getId(); ?>
+            <!-- Redesign: top price block — Today's Special Price card (sale + compare), compare + wishlist actions. -->
+            <div class="tcs-top-price">
+                <div class="tcs-price-block" data-tcs-pricecard="<?= $tcsPid ?>">
+                    <div class="tcs-price-card">
+                        <span class="tcs-price-card__label">Today's Special Price</span>
+                        <span class="tcs-price-card__sale">&nbsp;</span>
+                    </div>
+                    <span class="tcs-price-card__compare"></span>
+                </div>
+                <div class="tcs-top-price__actions">
+                    <a href="javascript:void(0);" class="tcs-top-price__compare" role="button" aria-label="Add to Compare">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="20" viewBox="0 0 18 20" fill="none"><path d="M15.375 0C14.3395 0 13.5 0.839466 13.5 1.875V17.625C13.5 18.6605 14.3395 19.5 15.375 19.5H16.125C17.1605 19.5 18 18.6605 18 17.625V1.875C18 0.839466 17.1605 0 16.125 0H15.375Z" fill="#333333"/><path d="M6.75 6.375C6.75 5.33947 7.58947 4.5 8.625 4.5H9.375C10.4105 4.5 11.25 5.33947 11.25 6.375V17.625C11.25 18.6605 10.4105 19.5 9.375 19.5H8.625C7.58947 19.5 6.75 18.6605 6.75 17.625V6.375Z" fill="#333333"/><path d="M0 10.875C0 9.83947 0.839466 9 1.875 9H2.625C3.66053 9 4.5 9.83947 4.5 10.875V17.625C4.5 18.6605 3.66053 19.5 2.625 19.5H1.875C0.839466 19.5 0 18.6605 0 17.625V10.875Z" fill="#333333"/></svg>
+                    </a>
+                    <a href="javascript:void(0);" class="tcs-top-price__wish" role="button" aria-label="Add to Wish List">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="22" viewBox="0 0 24 22" fill="none"><path d="M23 6.45455C23 3.44208 20.435 1 17.2708 1C14.9051 1 12.8742 2.36519 12 4.31324C11.1258 2.36519 9.09492 1 6.72917 1C3.56504 1 1 3.44208 1 6.45455C1 15.2067 12 21 12 21C12 21 23 15.2067 23 6.45455Z" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </a>
+                </div>
+            </div>
+            <!-- Redesign: affirm widget (moved via JS to below the bottom price section, above the ATC) -->
+            <div class="tcs-affirm-slot"><?= /* @noEscape */ $block->getChildHtml('aslowas.bundle') ?></div>
+            <!-- Redesign: trust-badge row above the bundle groups (icons are placeholders; swap for supplied SVGs) -->
+            <div class="tcs-usp-row">
+                <span class="tcs-usp tcs-usp--ship">
+                    <span class="tcs-usp__icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="16" viewBox="0 0 20 16" fill="none"><path d="M6.14781 13.2C6.14781 13.9732 5.52686 14.6 4.76088 14.6C3.9949 14.6 3.37396 13.9732 3.37396 13.2M6.14781 13.2C6.14781 12.4268 5.52686 11.8 4.76088 11.8C3.9949 11.8 3.37396 12.4268 3.37396 13.2M6.14781 13.2H11.6955M3.37396 13.2H1.64029C1.06581 13.2 0.600098 12.7299 0.600098 12.15V9.00039M16.5498 13.2C16.5498 13.9732 15.9288 14.6 15.1629 14.6C14.3969 14.6 13.7759 13.9732 13.7759 13.2M16.5498 13.2C16.5498 12.4268 15.9288 11.8 15.1629 11.8C14.3969 11.8 13.7759 12.4268 13.7759 13.2M16.5498 13.2L17.59 13.2C18.1645 13.2 18.6336 12.7293 18.5982 12.1505C18.404 8.97008 17.3332 6.02907 15.6266 3.57062C15.2917 3.08816 14.7495 2.80053 14.1667 2.76825H11.6955M13.7759 13.2H11.6955M11.6955 2.76825V1.87378C11.6955 1.34412 11.3049 0.896035 10.783 0.841363C9.25948 0.681773 7.71311 0.599976 6.14781 0.599976C4.58252 0.599976 3.03615 0.681773 1.51268 0.841363C0.990766 0.896035 0.600098 1.34412 0.600098 1.87378V9.00039M11.6955 2.76825V9.00039M11.6955 13.2V9.00039M11.6955 9.00039H0.600098" stroke="#19AF2B" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                    <span class="tcs-usp__text">Free Shipping</span>
+                </span>
+                <span class="tcs-usp tcs-usp--match">
+                    <span class="tcs-usp__icon"><svg xmlns="http://www.w3.org/2000/svg" width="19" height="20" viewBox="0 0 19 20" fill="none"><path d="M6.41667 10.4319L8.54167 12.6026L12.0833 7.53771M9.25 0.75C7.21898 2.71483 4.47643 3.91992 1.45833 3.91992C1.41038 3.91992 1.36249 3.91961 1.31468 3.91901C0.948237 5.05751 0.75 6.27399 0.75 7.53776C0.75 12.9322 4.36186 17.4648 9.25 18.75C14.1381 17.4648 17.75 12.9322 17.75 7.53776C17.75 6.27399 17.5518 5.05751 17.1853 3.91901C17.1375 3.91961 17.0896 3.91992 17.0417 3.91992C14.0236 3.91992 11.281 2.71483 9.25 0.75Z" stroke="#007BFF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+                    <span class="tcs-usp__text">Price Match Promise</span>
+                </span>
+                <span class="tcs-usp tcs-usp--phone">
+                    <span class="tcs-usp__icon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="19" viewBox="0 0 18 19" fill="none"><path d="M16.4529 9.32195H14.6447V5.84598C14.6447 2.84297 12.0341 0.400024 8.82552 0.400024C5.61699 0.400024 3.00638 2.84287 3.00638 5.84598V9.32195H1.31119C0.808781 9.32195 0.399902 9.74504 0.399902 10.2648V14.8176C0.399902 15.3375 0.808807 15.7605 1.31119 15.7605H3.28788C3.44302 15.7605 3.56938 15.6298 3.56938 15.4693V5.8447C3.56938 3.16268 5.92723 0.981385 8.82542 0.981385C11.7236 0.981385 14.0815 3.16271 14.0815 5.8447V15.4682C14.0815 15.6287 14.2078 15.7594 14.363 15.7594H15.1263V16.3824C15.1263 16.7257 14.8561 17.0053 14.5242 17.0053H10.6858C10.5615 16.5376 10.1485 16.1932 9.65845 16.1932H7.99204C7.40436 16.1932 6.9256 16.6885 6.9256 17.2966C6.9256 17.9047 7.40436 18.4 7.99204 18.4H9.65845C10.1485 18.4 10.5615 18.0556 10.6858 17.5879H14.5242C15.1664 17.5879 15.6893 17.0468 15.6893 16.3824V15.7594H16.4526C16.9746 15.7594 17.3999 15.3204 17.3999 14.7793V10.3008C17.3999 9.76079 16.9756 9.3207 16.4526 9.3207L16.4529 9.32195ZM0.962774 14.8177V10.2649C0.962774 10.0661 1.11894 9.9056 1.31003 9.9056H3.00522V15.1782H1.31003C1.11791 15.1782 0.962774 15.0166 0.962774 14.8189V14.8177ZM9.65848 17.8174H7.99206C7.71466 17.8174 7.48863 17.5836 7.48863 17.2965C7.48863 17.0095 7.71466 16.7757 7.99206 16.7757H9.65848C9.93588 16.7757 10.1619 17.0095 10.1619 17.2965C10.1619 17.5836 9.93589 17.8174 9.65848 17.8174ZM16.8358 14.7804C16.8358 14.9994 16.6642 15.1769 16.4526 15.1769H14.6444V9.90432H16.4526C16.6643 9.90432 16.8358 10.0818 16.8358 10.3008V14.7804Z" fill="#007BFF" stroke="#007BFF" stroke-width="0.8"/></svg></span>
+                    <span class="tcs-usp__text">Talk to our HVAC Experts: <a href="tel:8668628922">(866) 862-8922</a></span>
+                </span>
+            </div>
+                                                    
+                <?php
+                // Redesign: render each group as an always-open section (no mage/accordion
+                // widget, no data-role collapsible/trigger/content) so the bundle form is
+                // fully expanded on first paint with no script-driven init. priceBundle
+                // (above) still handles live price recalculation.
+                $itemLabel = $includedCount === 1 ? 'item' : 'items';
+                $fullOpt  = ($includedOpt == '') ? '' : "<div class='tcs-bundle-group tcs-bundle-group--included'><div class='tcs-bundle-group__head'><span class='tcs-bundle-group__title'>Included</span><span class='tcs-bundle-group__count'>".$includedCount." ".$itemLabel."</span></div><div class='tcs-bundle-group__body option_included'>".$includedOpt."</div></div>";
+                $fullOpt .= ($optionalOPt == '') ? '' : "<div class='tcs-bundle-group tcs-bundle-group--optional'><div class='tcs-bundle-group__head'><span class='tcs-bundle-group__title'>Select Optional Accessories / Units</span></div><div class='tcs-bundle-group__body option_optional'>".$optionalOPt."</div></div>";
                 if($warrantyStatus === true){
-                    $fullOpt .= ($warrantyOpt == '') ? $warrantyOpt : "<div data-role='collapsible' class='collapsible_title'>3<sup>rd</sup> Party Extended Labor Warranty
-<span class='tooltip-container'>
-<span class='tooltip-icon'>?</span>
-<!--<span class='tooltip-text'>". $this->getLayout()->createBlock('Magento\Cms\Block\Block')->setBlockId('warranty_policy_link')->toHtml()."</span>-->
-</span>
-<div data-role='trigger' class='collapsible_icon'></div></div><div data-role='content' class='option_optional warranty_options'>".$warrantyOpt."</div>";
-                }?>
-                <div data-mage-init='{"accordion":{"openedState": "active", "collapsible": true, "active":[1, 2], "multipleCollapsible": true}}'>
+                    $warrantyNote = '<div class="tcs-warranty-note"><span class="tcs-warranty-note__icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="20" viewBox="0 0 14 20" fill="none"><path d="M0.600098 10.9847L8.23646 0.600098L6.6001 8.21548H12.6001L4.96373 18.6001L6.6001 10.9847H0.600098Z" stroke="#F7D23D" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="tcs-warranty-note__text">We highly recommend this protection. Covers the technician\'s bill if a repair is ever needed - parts are already covered separately.</span></div>';
+                    $fullOpt .= ($warrantyOpt == '') ? '' : "<div class='tcs-bundle-group tcs-bundle-group--warranty'><div class='tcs-bundle-group__head'><span class='tcs-bundle-group__title'>3<sup>rd</sup> Party Extended Labor Warranty</span><span class='tooltip-container'><span class='tooltip-icon'>?</span></span></div><div class='tcs-bundle-group__body option_optional warranty_options'>".$warrantyNote.$warrantyOpt."</div></div>";
+                }
+                ?>
+                <div class="tcs-bundle-groups">
                     <?php echo $fullOpt; ?>
                 </div>
         </fieldset>
@@ -77,6 +328,596 @@ $options = $block->decorateArray($block->getOptions($stripSelection));
         <p class="empty"><?= $block->escapeHtml(__('No options of this product are available.')) ?></p>
     <?php endif; ?>
 <?php endif;?>
+<script type="text/javascript">
+require(['jquery', 'domReady!'], function ($) {
+    // Heart -> reuse the existing wishlist link.
+    $('.tcs-top-price__wish').on('click', function (e) {
+        e.preventDefault();
+        var $w = $('.product-info-main .product-addto-links .action.towishlist').first();
+        if ($w.length) { $w[0].click(); }
+    });
+    // Compare -> reuse the existing add-to-compare link.
+    $('.tcs-top-price__compare').on('click', function (e) {
+        e.preventDefault();
+        var $c = $('.product-info-main .product-addto-links .action.tocompare, .block-bundle-summary .action.tocompare').first();
+        if ($c.length) { $c[0].click(); }
+    });
+});
+</script>
+<style>
+/* Redesign: reorder the product-form (right column) to match the design.
+   Layout <move> can't relocate the bundle-entangled price container, so we
+   reorder presentationally with flexbox order. */
+.product-info-main { display: flex; flex-direction: column; }
+.product-info-main > * { order: 10; }
+.product-info-main > .page-title-wrapper { order: 1; }
+.product-info-main > .product-info-stock-sku { order: 2; }
+.product-info-main > .product-info-price { display: none; }   /* old default price block — replaced by the styled top block inside the bundle */
+.product-info-main > .bundle-options-container { order: 5; }
+.product-info-main > .product.attribute.overview { order: 30; }
+.product.attribute.overview { display: none !important; }
+/* hide the old shipping-features section (replaced by the financing banners) */
+.product-info-main #tcs-shopping-cart-features,
+.product-info-main .user-features { display: none !important; }
+.product-info-main > #sizing_calc_button { order: 31; }
+.product-info-main > #sizing_calc { order: 32; }
+
+/* Redesign: top price block — Today's Special Price card + compare/wishlist actions */
+.tcs-top-price {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 0 0 14px;
+    font-family: 'Open Sans', sans-serif;
+}
+.tcs-top-price__actions { margin-left: auto; flex: 0 0 auto; display: inline-flex; align-items: center; gap: 10px; }
+.tcs-top-price__compare,
+.tcs-top-price__wish {
+    flex: 0 0 auto;
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 48px; height: 48px;
+    border: 1px solid #DAE2E6; border-radius: 10px; color: #333;
+}
+.tcs-top-price__compare:hover,
+.tcs-top-price__wish:hover { border-color: #c3ccd2; }
+
+/* Redesign: affirm widget span — drop the inline float:left, render as block */
+.fieldset-bundle-options span:has(#als_pdp) { float: none !important; display: block !important; }
+.tcs-affirm-slot { margin: 0; }
+@media (max-width: 767.98px) {
+    /* Top price block: card on row 1, actions align right */
+    .tcs-top-price { flex-wrap: wrap; gap: 10px; }
+    .tcs-price-card { flex: 1 1 auto; }
+}
+
+/* Redesign: trust-badge row above the bundle groups */
+.tcs-usp-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 28px;
+    padding: 4px 0 14px;
+}
+.tcs-usp {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .2px;
+    text-transform: uppercase;
+    color: #353E46;
+    line-height: 1.2;
+}
+.tcs-usp__icon { flex: 0 0 auto; display: inline-flex; }
+.tcs-usp__icon svg { height: 18px; width: auto; display: block; }
+.tcs-usp--ship { color: #19AF2B; }
+.tcs-usp__text a { color: #007BFF; text-decoration: none; }
+.tcs-usp__text a:hover { text-decoration: underline; }
+@media (max-width: 767.98px) {
+    .tcs-usp-row { gap: 8px 16px; }
+}
+
+/* Redesign: always-open bundle groups (no accordion). */
+.tcs-bundle-groups { margin-top: 12px; }
+.tcs-bundle-group {
+    border: 1px solid transparent;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 16px;
+    background: #fff;
+}
+.tcs-bundle-group__head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    font-weight: 700;
+    font-size: 15px;
+    line-height: 1.3;
+    text-transform: uppercase;
+}
+.tcs-bundle-group__title { flex: 1 1 auto; }
+.tcs-bundle-group__title sup { font-size: 60%; }
+/* Warranty: keep the "?" tooltip right next to the title text, not pushed to the edge */
+.tcs-bundle-group--warranty .tcs-bundle-group__title { flex: 0 1 auto; }
+.tcs-bundle-group--warranty .tcs-bundle-group__head .tooltip-container { margin-left: -2px; }
+.tcs-bundle-group__count { flex: 0 0 auto; font-weight: 600; font-size: 13px; opacity: .8; }
+.tcs-bundle-group__body { padding: 14px 16px; }
+.tcs-bundle-group__body .field.option:last-child { margin-bottom: 0; }
+
+/* Included — grey header, dark text, white body */
+.tcs-bundle-group--included { border-color: #f4f4f4; }
+.tcs-bundle-group--included .tcs-bundle-group__head { background: #F4F4F4; color: #21293C; }
+
+/* Optional accessories / units — blue header, light-blue body */
+.tcs-bundle-group--optional { border-color: #007BFF; }
+.tcs-bundle-group--optional .tcs-bundle-group__head { background: #007BFF; color: #fff; }
+.tcs-bundle-group--optional .tcs-bundle-group__body { background: #E6F2FF; }
+
+/* 3rd-party warranty — amber header, cream body */
+.tcs-bundle-group--warranty { border-color: #F7D23D; }
+.tcs-bundle-group--warranty .tcs-bundle-group__head { background: #F7D23D; color: #21293C; }
+.tcs-bundle-group--warranty .tcs-bundle-group__body { background: #FFFBE6; }
+
+/* ---- Group body content (Open Sans across the bundle form) ---- */
+.tcs-bundle-group__body,
+.tcs-bundle-group__body label,
+.tcs-bundle-group__body select,
+.tcs-bundle-group__body .product-name,
+.tcs-bundle-group__body .price { font-family: 'Open Sans', sans-serif; }
+
+/* Included items: bold title, grey description, right-aligned price, dividers */
+.tcs-bundle-group--included .tcs-bundle-group__body .field.option {
+    padding: 14px 0;
+    margin: 0;
+    border-bottom: 1px solid #eef0f2;
+}
+.tcs-bundle-group--included .tcs-bundle-group__body .field.option:first-child { padding-top: 2px; }
+.tcs-bundle-group--included .tcs-bundle-group__body .field.option:last-child { border-bottom: 0; padding-bottom: 2px; }
+.tcs-bundle-group--included .label { margin: 0 0 4px; padding: 0; }
+.tcs-bundle-group--included .label span { font-weight: 700; font-size: 15px; color: #21293C; }
+.tcs-bundle-group--included .control .nested.options-list {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+}
+.tcs-bundle-group--included .product-name {
+    flex: 1 1 auto;
+    color: #6b7280;
+    font-size: 13px;
+    line-height: 1.45;
+    font-weight: 400;
+}
+.tcs-bundle-group--included .price-notice { flex: 0 0 auto; font-size: 0; white-space: nowrap; }
+.tcs-bundle-group--included .price-notice .price {
+    font-size: 15px;
+    font-weight: 700;
+    color: #21293C;
+}
+
+/* Optional accessories: bold label + styled select dropdown */
+.tcs-bundle-group--optional .field.option { margin: 0; }
+/* When there are multiple accessory options, give each option after the first room above its label */
+.tcs-bundle-group--optional .field.option + .field.option { margin-top: 16px; }
+.tcs-bundle-group--optional .label { margin: 0 0 8px; padding: 0; }
+.tcs-bundle-group--optional .label span { font-weight: 700; font-size: 15px; color: #21293C; }
+.tcs-bundle-group--optional select.bundle-option-select {
+    width: 100%;
+    height: auto;
+    min-height: 46px;
+    padding: 11px 40px 11px 14px;
+    border: 1px solid #cfe0f5;
+    border-radius: 8px;
+    background-color: #fff;
+    font-size: 14px;
+    color: #21293C;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+}
+.tcs-bundle-group--optional select.bundle-option-select:focus {
+    border-color: #007BFF;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0,123,255,.15);
+}
+/* Optional: hide the quantity box + label (single-select accessory, qty fixed) — dropdown only per design */
+.tcs-bundle-group--optional .field.qty.qty-holder { display: none !important; }
+
+/* Warranty: hide the DB-injected label text (:before recommend / :after CA notice / "3rd Party Labor Warranty") — replaced by our own banner below */
+.tcs-bundle-group--warranty .warranty_options > .field.option > label.label { display: none !important; }
+
+/* Warranty recommendation banner (icon + text) */
+.tcs-warranty-note {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 2px 0 14px;
+    margin: 0;
+}
+.tcs-warranty-note__icon { flex: 0 0 auto; line-height: 0; margin-top: 0; }
+.tcs-warranty-note__icon svg { display: block; }
+
+/* Redesign: "Found a better price?" price-match note — amber info box with lightning icon */
+span#make_an_offer_show-popup {
+    display: block !important; position: relative; box-sizing: border-box;
+    margin: 14px 0 0 !important; padding: 14px 16px 14px 44px !important;
+    background: #FFFBE6 !important; border: 1px solid #F7D23D66 !important; border-radius: 8px !important;
+    font-family: 'Open Sans', sans-serif;
+    font-size: 12.5px !important; font-weight: 700 !important; line-height: 1.4 !important;
+    color: #21293C !important; text-align: left !important; text-transform: none !important;
+    float: none !important; width: auto !important; cursor: pointer;
+}
+span#make_an_offer_show-popup::before {
+    content: "" !important; display: block !important;
+    position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+    width: 14px; height: 20px; margin: 0 !important;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='20' viewBox='0 0 14 20' fill='none'%3E%3Cpath d='M0.600098 10.9847L8.23646 0.600098L6.6001 8.21548H12.6001L4.96373 18.6001L6.6001 10.9847H0.600098Z' stroke='%23F7D23D' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat center / contain !important;
+}
+span#make_an_offer_show-popup::after {
+    display: block !important; margin-top: 4px !important; text-align: left !important;
+    font-weight: 600 !important; font-size: 12.5px !important; color: #21293C !important;
+}
+.tcs-warranty-note__text {
+    font-family: 'Open Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.45;
+    color: #21293C;
+}
+
+/* Warranty: radio options rendered as selectable cards */
+.warranty_options > .field.option > .control > .nested.options-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+}
+.warranty_options .field.choice.tcs-warr-hide { display: none !important; }
+.warranty_options .field.choice {
+    position: relative;
+    margin: 0 !important;
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    float: none !important;
+    display: block !important;
+    background: #fff;
+    border: 1px solid #F7D23D;   /* border = header color */
+    border-radius: 8px;
+    padding: 12px 14px 14px;
+    min-height: 62px;
+    box-sizing: border-box;
+}
+.warranty_options .field.choice input[type="radio"] {
+    position: absolute !important;
+    top: 0; left: 0;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    opacity: 0 !important;
+    border: 0 !important;
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+    z-index: 2;
+}
+/* reset theme borders / shrink-to-fit on the inner text elements */
+.warranty_options .field.choice > label.label,
+.warranty_options .field.choice > label.label > span,
+.warranty_options .field.choice .product-name,
+.warranty_options .field.choice .price-notice {
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    float: none !important;
+    max-width: none !important;
+}
+.warranty_options .field.choice > label.label {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+    cursor: pointer;
+    text-transform: none;
+}
+.warranty_options .field.choice > label.label > span {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    width: 100% !important;
+    gap: 3px;
+    font-size: 13px;         /* visible by default — covers the plain-text 'None' option */
+    color: #6b7280;
+    font-weight: 600;
+    text-align: left;
+}
+/* Collapse the stray &nbsp; line ONLY for priced options (those have a .price-notice) */
+.warranty_options .field.choice > label.label > span:has(.price-notice) { font-size: 0; }
+.warranty_options .field.choice .product-name {
+    display: block !important;
+    width: 100%;
+    white-space: normal !important;
+    font-size: 13px;
+    color: #6b7280;
+    font-weight: 600;
+    text-align: left;
+}
+.warranty_options .field.choice .price-notice { font-size: 0; margin: 0; text-align: left; }
+.warranty_options .field.choice .price-notice .price {
+    font-size: 18px;
+    font-weight: 700;
+    color: #21293C;
+}
+/* selected state — blue highlight */
+.warranty_options .field.choice:has(input:checked) {
+    border-color: #007BFF;
+    background: #E6F2FF;
+}
+/* selected state — close (×) affordance so users know a second click removes the warranty.
+   pointer-events:none lets the click pass through to the full-card radio, which the deselect handler already toggles off. */
+.warranty_options .field.choice:has(input:checked)::after {
+    content: '';
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 17px 17px;
+    background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='17'%20height='17'%20viewBox='0%200%2017%2017'%20fill='none'%3E%3Crect%20x='0.5'%20y='0.5'%20width='16'%20height='16'%20rx='8'%20fill='white'%20stroke='%23EE2D43'/%3E%3Cpath%20d='M11.6763%205.31506L5.31231%2011.679'%20stroke='%23EE2D43'/%3E%3Cpath%20d='M11.6812%2011.6789L5.31719%205.31493'%20stroke='%23EE2D43'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 3;
+}
+/* Override home_custom.css: drop the 70px min-height on the warranty label (6-class selector, so match it) */
+.warranty_options .radio.product.bundle.option + .label { min-height: 0 !important; height: auto !important; }
+/* Warranty control: no padding / transparent background */
+.warranty_options .control { padding: 0; background: transparent; float: none !important; }
+
+/* Non-MAP bundle products: restyle the standard "Add to Cart" form (qty + button) that renders
+   under the options to match the new design (blue full-width ATC like the MAP quickview button).
+   Scoped to .page-product-bundle so non-bundle products keep the old design. */
+.page-product-bundle .product-add-form .box-tocart { display: block; margin: 16px 0 0; padding: 0; }
+.page-product-bundle .product-add-form .box-tocart .fieldset { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 0; }
+/* Quantity box removed from bundle products (qty defaults to 1) */
+.page-product-bundle .product-add-form .box-tocart .field.qty { display: none !important; }
+.page-product-bundle .product-add-form .box-tocart > .fieldset > .actions { flex: 1 1 100%; width: 100%; margin: 0; }
+.page-product-bundle .product-add-form .box-tocart button.action.tocart,
+.page-product-bundle .product-add-form .box-tocart button.action.tocart:hover,
+.page-product-bundle .product-add-form .box-tocart button.action.tocart:focus,
+.page-product-bundle .product-add-form .box-tocart button.action.tocart:active {
+    display: flex !important; align-items: center; justify-content: center; gap: 12px;
+    width: 100% !important; height: 60px !important; min-height: 60px !important; box-sizing: border-box;
+    background: #2F2BBC !important; color: #fff !important;
+    border: 0 !important; border-radius: 12px !important; box-shadow: none !important;
+    padding: 16px !important; margin: 0 !important;
+    font-family: 'Open Sans', sans-serif !important;
+    font-size: 16px !important; font-weight: 600 !important; font-style: normal !important; line-height: 1.2 !important;
+    letter-spacing: .3px !important; text-transform: uppercase !important; text-decoration: none !important;
+    transform: none !important; transition: background-color .2s ease !important;
+}
+/* lock the inner text spans in every state so the label never reflows on hover */
+.page-product-bundle .product-add-form .box-tocart button.action.tocart span,
+.page-product-bundle .product-add-form .box-tocart button.action.tocart:hover span,
+.page-product-bundle .product-add-form .box-tocart button.action.tocart:focus span,
+.page-product-bundle .product-add-form .box-tocart button.action.tocart:active span {
+    font-family: 'Open Sans', sans-serif !important;
+    font-size: 16px !important; font-weight: 600 !important; font-style: normal !important;
+    letter-spacing: .3px !important; text-transform: uppercase !important;
+}
+/* only the background changes on hover — nothing shifts (kill any hover icon too) */
+.page-product-bundle .product-add-form .box-tocart button.action.tocart:hover { background: #262299 !important; }
+.page-product-bundle .product-add-form .box-tocart .action.tocart:before,
+.page-product-bundle .product-add-form .box-tocart .action.tocart:after,
+.page-product-bundle .product-add-form .box-tocart .action.tocart:hover:before,
+.page-product-bundle .product-add-form .box-tocart .action.tocart:hover:after { content: none !important; display: none !important; }
+/* remove the extra/blank buttons (instant purchase, apple pay, paypal, google pay) under Add to Cart on bundle products */
+.page-product-bundle .product-add-form .box-tocart #instant-purchase,
+.page-product-bundle .product-add-form .box-tocart .apple-pay,
+.page-product-bundle .product-add-form .box-tocart .paypal,
+.page-product-bundle .product-add-form .box-tocart .gpay-button-container,
+.page-product-bundle .product-add-form .box-tocart [class*="paypal"],
+.page-product-bundle .product-add-form .box-tocart [data-block="instant-purchase"] { display: none !important; }
+
+/* Force the product ATC to flex (Porto custom.css sets display:block !important on this selector) */
+body.catalog-product-view:not(.weltpixel-quickview-catalog-product-view):not(.weltpixel_quickview-catalog_product-view) .box-tocart .action.tocart { display: flex !important; }
+.product-addto-links { display: none !important; }
+/* Non-MAP bundle: hide Porto's "moved add-to-links" block (compare/wishlist/mailto moved to the top price section) */
+.tcs-nonmap-bundle .moved-add-to-links { display: none !important; }
+/* Non-MAP bundle: bottom price section mirrors MAP — compare price only + full-width ATC below it. */
+.tcs-nonmap-bundle .block-bundle-summary .product-details > .box-tocart {
+    order: 6; flex: 0 0 100%; width: 100%; margin: 10px 0 0;
+}
+/* show only the compare ("was") price; hide the sale price + "you save" (revealed in the popup) */
+.tcs-nonmap-bundle .block-bundle-summary .price-as-configured > .price-container { display: none !important; }
+.tcs-nonmap-bundle .block-bundle-summary .price-as-configured .old-price { display: inline-block !important; margin: 0 !important; }
+.tcs-nonmap-bundle .block-bundle-summary .price-as-configured .old-price .price-label { display: none !important; }
+.tcs-nonmap-bundle .block-bundle-summary .price-as-configured .old-price .price,
+.tcs-nonmap-bundle .block-bundle-summary .price-as-configured .old-price .price-wrapper .price {
+    text-decoration: none !important; font-weight: 700 !important; color: #EE2D43 !important;
+}
+.tcs-nonmap-bundle .block-bundle-summary [id^="saving-price-label"] { display: none !important; }
+
+/* Redesign: bottom bundle-summary — remove the wishlist link */
+.block-bundle-summary .product-addto-links .action.towishlist { display: none !important; }
+
+/* Redesign: bottom main CTA — restyle the "View Lowest Price" quickview button into the primary blue button */
+.block-bundle-summary .tcs-bt-quickview { margin-top: 14px; }
+.block-bundle-summary .tcs-bt-quickview > a,
+.block-bundle-summary .tcs-bt-quickview > a:hover,
+.block-bundle-summary .tcs-bt-quickview > a:focus,
+.block-bundle-summary .tcs-bt-quickview > a:active {
+    display: flex !important; align-items: center; justify-content: center; gap: 12px;
+    width: 100%; height: 60px !important; min-height: 60px !important; box-sizing: border-box;
+    background: #2F2BBC !important; color: #fff !important;
+    border: 0 !important; border-radius: 12px;
+    padding: 16px !important;
+    font-family: 'Open Sans', sans-serif !important;
+    font-size: 16px !important; font-weight: 600 !important; line-height: 1.2 !important;
+    text-transform: uppercase; text-decoration: none !important;
+}
+.block-bundle-summary .tcs-bt-quickview > a:hover { background: #262299 !important; }
+@media (max-width: 767.98px) {
+    /* Smaller product title on mobile */
+    .catalog-product-view .product-info-main .page-title-wrapper h1.page-title { font-size: 24px !important; line-height: 30px !important; }
+    /* Final purple CTA: no arrow, smaller font/padding so the label never cuts off on small screens */
+    .block-bundle-summary .tcs-bt-quickview > a,
+    .block-bundle-summary .tcs-bt-quickview > a:hover,
+    .block-bundle-summary .tcs-bt-quickview > a:focus,
+    .block-bundle-summary .tcs-bt-quickview > a:active {
+        font-size: 15px !important; padding: 10px !important;
+    }
+    .tcs-mainbtn__arrow { display: none !important; }
+
+    /* Smaller special-price on mobile */
+    .tcs-price-card__sale { font-size: 24px !important; }
+    .tcs-price-card__compare { font-size: 18px !important; }
+
+    /* Feature list (pdp_btmblk) spacing + list styling on mobile */
+    .pdp_btmblk { margin-top: 0 !important; margin-bottom: 12px; padding: 10px !important; }
+    .pdp_btmblk ul li { margin: 4px 0; }
+    .pdp_btmblk ul li span { font-size: 14px !important; margin-left: 30px !important; }
+    .pdp_btmblk ul li i { left: 10px !important; }
+}
+.tcs-mainbtn__a { color: #fff; }
+.tcs-mainbtn__b { color: #F7D23D; font-weight: inherit; font-style: normal; }
+.tcs-mainbtn__arrow { display: inline-flex; align-items: center; font-style: normal; }
+.tcs-mainbtn__arrow svg { display: block; }
+
+/* Redesign: bottom summary — hide image/name/stock; style the configured price like the top block */
+.block-bundle-summary .bundle-info .product-image-container { display: none !important; }
+.block-bundle-summary .bundle-info .product-details { width: 100% !important; }
+.block-bundle-summary .product-details > .product.name,
+.block-bundle-summary .product-details .available.stock { display: none !important; }
+.block-bundle-summary .price-box.price-configured_price { margin: 0 0 12px; }
+.block-bundle-summary .price-box.price-configured_price::before {
+    content: "Competitor Price";
+    display: block; font-family: 'Open Sans', sans-serif;
+    font-size: 11px; font-weight: 700; color: #21293C; margin-bottom: 2px;
+}
+.block-bundle-summary .price-configured_price .price {
+    font-family: 'Open Sans', sans-serif;
+    font-size: 30px !important; font-weight: 700 !important;
+    color: #EE2D43 !important; text-decoration: line-through !important;
+}
+@media (max-width: 767.98px) {
+    /* Bottom price 24px (placed after the base 30px rule so it wins) */
+    .block-bundle-summary .price-configured_price .price { font-size: 24px !important; }
+    /* Icon buttons: 40px tall, smaller compare SVG */
+    .block-bundle-summary .product-addto-links .action.tocompare { width: 40px !important; height: 40px !important; }
+    .block-bundle-summary .product-addto-links .action.tocompare svg { width: 15px; height: auto; }
+    .block-bundle-summary #sizing_calc_button .tcs-sizingcalc { height: 40px !important; padding: 0 10px !important; font-size: 14px !important; }
+
+    /* Warranty: 2 cards per row, last visible (10 Year) full-width — like the financing 2+1 */
+    .warranty_options > .field.option > .control > .nested.options-list { display: flex !important; flex-wrap: wrap; gap: 12px; }
+    .warranty_options .field.choice { flex: 1 1 calc(50% - 6px); }
+    .warranty_options .field.choice.tcs-warr-full { flex: 1 1 100%; }
+
+    /* Warranty heading: hide the "?" tooltip button on mobile */
+    .tcs-bundle-group--warranty .tcs-bundle-group__head .tooltip-container { display: none !important; }
+}
+
+/* Redesign: bottom price row — price + unlock pill + compare on one line, big CTA below */
+.block-bundle-summary .product-details {
+    display: flex; flex-wrap: wrap; align-items: center;
+}
+/* Bottom section: price card (row 1, left) + sizing help (row 1, right); affirm (row 2); ATC (row 3, full width). */
+.block-bundle-summary .product-details > .price-box.price-configured_price { display: none !important; } /* native price hidden — shown in the card */
+.block-bundle-summary .product-details > .tcs-bottom-card { order: 1; flex: 0 0 auto; }
+.block-bundle-summary .product-details > .product-addto-links { display: none !important; }             /* compare/wishlist moved to the top section */
+.block-bundle-summary .product-details > #sizing_calc_button { order: 2; flex: 0 0 auto; margin: 0 0 0 auto !important; }
+.block-bundle-summary .product-details > .tcs-affirm-slot { order: 3; flex: 0 0 100%; margin: 8px 0 0; }
+.block-bundle-summary .product-details > .tcs-bt-quickview { order: 6; flex: 0 0 100%; margin-top: 8px; }
+/* Sizing Help — un-hide (overrides #sizing_calc_button{display:none}) and style as a bordered button */
+.block-bundle-summary #sizing_calc_button { display: inline-flex !important; }
+.block-bundle-summary #sizing_calc_button .tcs-sizingcalc {
+    display: inline-flex !important; align-items: center; justify-content: center;
+    height: 48px; padding: 0 14px !important; margin: 0 !important;
+    background: #fff !important; border: 1px solid #DAE2E6 !important; border-radius: 10px !important;
+    color: #333333 !important; font-family: 'Open Sans', sans-serif !important;
+    font-size: 16px !important; font-weight: 600 !important; line-height: 1 !important; letter-spacing: 0 !important;
+    text-transform: uppercase; text-decoration: none !important; white-space: nowrap;
+}
+.block-bundle-summary #sizing_calc_button .tcs-sizingcalc:hover { border-color: #c3ccd2 !important; }
+/* compare button styled like the wishlist square button */
+.block-bundle-summary .product-addto-links .action.tocompare {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 48px; height: 48px; margin: 0;
+    border: 1px solid #DAE2E6; border-radius: 10px; color: #333; text-decoration: none;
+}
+.block-bundle-summary .product-addto-links .action.tocompare:hover { border-color: #c3ccd2; }
+.block-bundle-summary .product-addto-links .action.tocompare span { display: none; }
+.block-bundle-summary .product-addto-links .action.tocompare svg { display: block; }
+.bundle-options-container .block-bundle-summary .product-addto-links > .action.tocompare::before { content: "" !important; display: none !important; }
+/* remove the promo CMS text ("*Orders over $3000...") that leaks in next to the price */
+.page-product-bundle .box-tocart .fieldset [data-content-type="html"] { display: none !important; }
+</style>
+<script type="text/javascript">
+require(['jquery', 'domReady!'], function ($) {
+    // Bottom main CTA "Add to Cart to Get Lowest Price".
+    // NOTE: the arrow is an <i> (not <span>) so Porto's add-to-cart loader — which does
+    // button.find('span').text('Adding...') — only hits the single text span (no "Adding... Adding...").
+    var MAINBTN_HTML =
+        '<span class="tcs-mainbtn__text">Add to Cart <b class="tcs-mainbtn__b">to Get Lowest Price</b></span>' +
+        '<i class="tcs-mainbtn__arrow"><svg xmlns="http://www.w3.org/2000/svg" width="25" height="12" viewBox="0 0 25 12" fill="none"><path d="M24.5303 6.05328C24.8232 5.76039 24.8232 5.28551 24.5303 4.99262L19.7574 0.219648C19.4645 -0.073245 18.9896 -0.073245 18.6967 0.219648C18.4038 0.512542 18.4038 0.987415 18.6967 1.28031L22.9393 5.52295L18.6967 9.76559C18.4038 10.0585 18.4038 10.5334 18.6967 10.8263C18.9896 11.1191 19.4645 11.1191 19.7574 10.8263L24.5303 6.05328ZM0 5.52295V6.27295H24V5.52295V4.77295H0V5.52295Z" fill="white"/></svg></i>';
+    // MAP products: retext the summary "View Lowest Price" quickview into the primary blue button.
+    var $vlp = $('.block-bundle-summary .tcs-bt-quickview > a.tcs-quickview').first();
+    if ($vlp.length) {
+        if (!$vlp.hasClass('tcs-mainbtn')) { $vlp.addClass('tcs-mainbtn').html(MAINBTN_HTML); }
+    } else {
+        // Non-MAP products: give the standard Add-to-Cart button the SAME look/label, and mark the
+        // page so the bottom price section mirrors the MAP layout (compare price only; sale in popup).
+        document.body.classList.add('tcs-nonmap-bundle');
+        var $atc = $('.product-add-form .box-tocart .action.tocart').first();
+        if ($atc.length && !$atc.hasClass('tcs-mainbtn')) { $atc.addClass('tcs-mainbtn').html(MAINBTN_HTML); }
+    }
+
+    // Bottom price row: inject the "Today's Special Price" card, and move the affirm widget below it (above the ATC).
+    var $details = $('.block-bundle-summary .product-details').first();
+    if ($details.length && !$details.children('.tcs-bottom-card').length) {
+        var $card = $(
+            '<div class="tcs-price-block tcs-bottom-card">' +
+              '<div class="tcs-price-card"><span class="tcs-price-card__label">Today\'s Special Price</span><span class="tcs-price-card__sale">&nbsp;</span></div>' +
+              '<span class="tcs-price-card__compare"></span>' +
+            '</div>'
+        );
+        $details.children('.price-box.price-configured_price').first().after($card);
+        var $affirm = $('.tcs-affirm-slot').first();
+        if ($affirm.length) { $card.after($affirm); }
+        if (window.__tcsRenderCards) { window.__tcsRenderCards(); }
+    }
+
+    // Bottom compare button: give it the bar-chart icon (MAP + non-MAP).
+    var $cmp = $('.block-bundle-summary .action.tocompare').first();
+    if ($cmp.length && !$cmp.find('svg').length) {
+        $cmp.prepend('<svg xmlns="http://www.w3.org/2000/svg" width="18" height="20" viewBox="0 0 18 20" fill="none"><path d="M15.375 0C14.3395 0 13.5 0.839466 13.5 1.875V17.625C13.5 18.6605 14.3395 19.5 15.375 19.5H16.125C17.1605 19.5 18 18.6605 18 17.625V1.875C18 0.839466 17.1605 0 16.125 0H15.375Z" fill="#333333"/><path d="M6.75 6.375C6.75 5.33947 7.58947 4.5 8.625 4.5H9.375C10.4105 4.5 11.25 5.33947 11.25 6.375V17.625C11.25 18.6605 10.4105 19.5 9.375 19.5H8.625C7.58947 19.5 6.75 18.6605 6.75 17.625V6.375Z" fill="#333333"/><path d="M0 10.875C0 9.83947 0.839466 9 1.875 9H2.625C3.66053 9 4.5 9.83947 4.5 10.875V17.625C4.5 18.6605 3.66053 19.5 2.625 19.5H1.875C0.839466 19.5 0 18.6605 0 17.625V10.875Z" fill="#333333"/></svg>');
+    }
+
+    // Move the financing banners to sit right after the "Found a better price" block.
+    var $fbp = $('.product-info-main #make_an_offer_show-popup').first();
+    var $fin = $('.product-info-main .tcs-fin-banners').first();
+    if ($fbp.length && $fin.length && !$fbp.next().is('.tcs-fin-banners')) {
+        $fbp.after($fin);
+    }
+
+    // Sizing Help: move into the bottom price row (after compare), relabel to "Sizing Help".
+    var $sizing = $('#sizing_calc_button');
+    if ($sizing.length && $details.length && !$details.children('#sizing_calc_button').length) {
+        $sizing.find('.tcs-sizingcalc span').text('Sizing Help');
+        var $addto = $details.children('.product-addto-links').first();
+        if ($addto.length) { $addto.after($sizing); } else { $details.append($sizing); }
+    }
+});
+</script>
 <script type="text/javascript">
         require([
             'jquery','domReady!'
@@ -334,7 +1175,7 @@ $warrantyTooltipContent = $this->getLayout()->createBlock('Magento\Cms\Block\Blo
     }
 }
 .warranty_options .field.choice{position: relative;}
-.warranty_options .field.choice .tooltip-popup{font-size:11px !important; position:absolute; top:-12px;right: 0;color: #fff !important;text-decoration: none;padding: 1px 5px;background-color: #ee2d43 !important;border: 1px solid #ee2d43;position: absolute;}
+.warranty_options .field.choice .tooltip-popup{font-size:10px !important; position:absolute; top:auto; bottom:14px; right:12px; color:#fff !important; text-decoration:none; padding:2px 7px; border-radius:4px; background-color:#007BFF !important; border:1px solid #007BFF; font-weight:700; text-transform:uppercase; letter-spacing:.2px; z-index:3; pointer-events:none;}
 .warranty_tooltip_content p{color: #444;font-size: 16px;text-align: left;}
 .warranty_tooltip_content ul{padding-left: 16px;}
 .warranty_tooltip_content ul li{color: #444;font-size: 16px !important;text-align: left;}
@@ -358,4 +1199,13 @@ require(['jquery'], function($) {
     });
 });
 </script>
+
+<style>
+/* Mobile spacing overrides — placed last so they win over all base rules above */
+@media (max-width: 767.98px) {
+    .tcs-bundle-group__body { padding: 10px; }
+    .warranty_options .field.choice { padding: 7px; }
+    .warranty_options .field.choice .tooltip-popup { right: 3px; bottom: 11px; padding: 2px; font-size: 8px !important; }
+}
+</style>
 

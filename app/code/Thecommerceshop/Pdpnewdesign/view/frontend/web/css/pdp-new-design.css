@@ -1,5 +1,5 @@
 .catalog-product-view .breadcrumbs .items>li{
-    color: #333 !important;
+    color: #000 !important;
   font-size: 18px !important;
 }
 .catalog-product-view .breadcrumbs .items li strong,.catalog-product-view .breadcrumbs .items li a{
@@ -22,6 +22,11 @@ height:475px !important;
   color: #21293C;
   font-size: 25px;
   line-height: 30px;
+  font-weight: bold;
+}
+.catalog-product-view .product-info-main .page-title-wrapper h1.page-title {
+  font-size: 30px;
+  line-height: 40px;
   font-weight: bold;
 }
 @media(min-width:1366px){
@@ -92,8 +97,17 @@ margin-bottom:0px !important;
 .catalog-product-view .product-info-main .product-info-stock-sku{
  padding-left: 0;
 text-align:left;
-font-size: 18px !important;
+font-size: 14px !important;
   line-height: 24px;
+      display: flex !important;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+}
+@media (max-width: 768px) {
+  .catalog-product-view .product-info-main .product-info-stock-sku {
+    justify-content: flex-start;
+  }
 }
 .catalog-product-view .product-info-main .product-info-stock-sku .upc{
 display: flex;
@@ -176,8 +190,8 @@ margin-left:10px;
 .bundle-options-container .product-options-wrapper .fieldset .field.option .control .bundle-option-select{
  font-size: 14px;
   height: 37px;
-width:80%;
-float:left;
+width:100%;
+margin-top: 10px;
 margin-right:12px;
 }
 .bundle-options-container .block-bundle-summary{
@@ -230,6 +244,7 @@ font-size:23px;
 }
 .freeship_image{
 margin-left:33px;
+display: none;
 }
 .catalog-product-view .product-info-main .product-info-stock-sku{
 padding-bottom: 13px;
@@ -498,12 +513,14 @@ float:left;
 
 
 .pdp_btmblk{
-background:#E8F4FF;
+background:transparent !important;
 border-radius: 10px;
 padding:20px;
 width: 100%;
     float: left;
     margin-top: 20px;
+        border: 1px solid #f4f4f4;
+        padding: 20px 20px 20px 0 !important;
 }
 .pdp_btmblk ul{
 	    list-style: none;
@@ -515,27 +532,46 @@ margin-bottom:0px;
     align-items: center;
     position: relative;
 margin: 12px 0px;
+font-size: 15px !important;
 }
 .pdp_btmblk ul li i{
-	    width: 30px;
-    height: 30px;
-    border: 1px solid #F04A58;
-    border-radius: 5px;
-    color: #F04A58;
+    width: 10px !important;
+    height: 10px !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
     font-size: 20px;
     text-align: center;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #fff;
-        position: absolute;
-    left: 0;
+    /* background: #fff; */
+    position: absolute;
+    left: 20px !important;
+    top: 6px;
+}
+.pdp_btmblk ul li i:before {
+  content: '';
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 6.00012L4.68421 11.0001L11 1.00012" stroke="%2319AF2B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>');
+  width: 10px;
+  height: 10px;
+  background-size: cover;
+}
+.fotorama__nav .fotorama__thumb-border {
+  border: 0 !important;
+  display: none !important;
+}
+.fotorama__nav--thumbs .fotorama__thumb {
+  border-radius: 7px !important;
+}
+.fotorama__nav--thumbs.fotorama__active .fotorama__thumb{
+  border-color: #2F3946 !important;
 }
 .pdp_btmblk ul li span{
     margin-left: 44px;
     color: #000000;
-    font-size: 18px;
-    line-height: 24px;
+    font-size: 15px !important;
+    line-height: 20px !important;
 }
 .catalog-product-view .tcs-bt-quickview{position:relative;}
 .catalog-product-view .product-info-main .targetbay-reviews-count-field .targetbay-question-icon i{
@@ -564,9 +600,6 @@ color:#000 !important;
 .pdp_btmblk ul li{
 	margin-bottom:20px;
 	align-items:flex-start;
-}
-.catalog-product-view .product-info-main .product-info-stock-sku .upc{
-  margin-top:10px;
 }
 @media(min-width:767.98px) and (max-width:768.98px){
 	.columns .column.main{
@@ -684,7 +717,10 @@ color:#000 !important;
     color: #000;
 }
 .catalog-product-view .breadcrumbs .items li strong, .catalog-product-view .breadcrumbs .items li a {
-    	font-weight: 600 !important;
+    	font-weight: 300 !important;
+      text-transform: none;
+    font-size: 14px !important;
+    font-family: 'Open Sans';
 }
 .catalog-product-view .page-wrapper  .breadcrumbs a:focus{
 	color: #333 !important;
@@ -775,3 +811,15 @@ display:inline-flex;
     margin-top: 2px;
     font-size: 14px;
 }
+
+/* AC/Furnace/Ductless Sizing Calculator: hide the modal content until the JS turns
+   it into a popup, so the 500px calculator block does not flash visible on load (FOUC).
+   The button (#sizing_calc_button) stays visible; the modal reveals #sizing_calc on open. */
+#sizing_calc { display: none; }
+#sizing_calc_button {display: none;}
+.modals-wrapper #sizing_calc { display: block; }
+
+/* Redesign tweaks */
+.block.upsell .title strong { font-size: 20px; font-weight: 500; }
+.comp-container .subtitle, .comp-container h3 { background: transparent; }
+.fotorama__nav--thumbs .fotorama__active .fotorama__thumb { border: 1px solid #2F3946 !important; }

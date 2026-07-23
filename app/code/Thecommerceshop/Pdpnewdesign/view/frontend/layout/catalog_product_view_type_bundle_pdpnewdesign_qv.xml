@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * Redesign: the collection-page quickview ("View Lowest Price") keeps the OLD bundle template
+ * (options_qv.phtml) so the PDP redesign stays scoped to the product page only. Added by the
+ * LoadBefore observer for the tcs_quickview_catalog_product_view action AFTER the main bundle
+ * handle, so this setTemplate wins.
+ */
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <referenceBlock name="product.info.bundle.options">
+            <action method="setTemplate">
+                <argument name="template" xsi:type="string">Thecommerceshop_Pdpnewdesign::product/view/type/bundle/options_qv.phtml</argument>
+            </action>
+        </referenceBlock>
+    </body>
+</page>

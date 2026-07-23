@@ -23,11 +23,7 @@ require([
         <?php endif; ?>
     <?php endif;?>
     <?php if($uppsell_fullbg && !$move_upsell && !$tab_fullbg):?>
-        if($(".block.upsell").length > 0) {
-            var u = $('<div class="main-upsell-product-detail"/>');
-            $('<div class="container"/>').html($(".block.upsell").detach()).appendTo(u);
-            $("#maincontent").after(u);
-        }
+        /* Redesign: upsell is positioned server-side via layout (catalog_product_view_pdpnewdesign.xml). JS move intentionally disabled. */
     <?php endif;?>
         }
     <?php if($move_addtolinks): ?>
@@ -38,6 +34,16 @@ require([
     });
 });
 </script>
+<style>
+/* Redesign: upsell section transparent (was #f4f4f4) and no negative overlap margin */
+.main-upsell-product-detail { background: transparent !important; background-color: transparent !important; margin-top: 0 !important; }
+/* Description tabs (accordion) h2 typography — desktop + mobile */
+.product.info.detailed .data.item.content h2 { font-weight: bold; font-size: 2rem; padding-bottom: 12px; }
+@media (max-width: 767.98px) {
+    /* Reduce spacing before the upsell ("Products you might need") on mobile */
+    .main-upsell-product-detail { padding-top: 12px !important; padding-bottom: 20px !important; }
+}
+</style>
 <script>
     window.pagesense = window.pagesense || [];
     window.pagesense.push(['trackEvent', 'Product']);
