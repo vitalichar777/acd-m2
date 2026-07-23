@@ -94,9 +94,10 @@ require(['jquery', 'domReady!'], function ($) {
 
 <script type="text/javascript">
 require(['jquery', 'domReady!'], function ($) {
-    // Accessories: default optional dropdown(s) to "Do not need one"; for a REQUIRED accessory option
-    // with no "Do not need one", auto-select the first real option so the configured price is complete
-    // and matches the collection-page price.
+    // Accessories: default optional dropdown(s) to "Do not need one" (a no-cost default the customer
+    // can freely change). REQUIRED accessories are intentionally left UNSELECTED so the customer picks
+    // them — the price shown on first paint comes from a server-computed baseline (see the price-card
+    // script below), so it still matches the collection card without forcing a selection.
     $('.tcs-bundle-group--optional select.bundle-option-select').each(function () {
         var $sel = $(this);
         if ($sel.val()) { return; } // leave any pre-selected value alone
@@ -105,9 +106,6 @@ require(['jquery', 'domReady!'], function ($) {
         }).first();
         if ($dnn.length) {
             $sel.val($dnn.val()).trigger('change');
-        } else if ($sel.closest('.field.option').hasClass('required')) {
-            var $first = $sel.find('option').filter(function () { return $.trim(this.value) !== ''; }).first();
-            if ($first.length) { $sel.val($first.val()).trigger('change'); }
         }
     });
 
@@ -191,7 +189,14 @@ require(['jquery', 'domReady!'], function ($) {
 <script type="text/javascript">
 require(['jquery', 'domReady!'], function ($) {
     var pid = <?= (int)$product->getId() ?>;
-    if (!$('.tcs-price-block').length) { return; }
+    var $block0 = $('.tcs-price-block');
+    if (!$block0.length) { return; }
+
+    // First paint uses the server baseline (matches the collection card). Once the customer actually
+    // changes an option, `userTouched` flips and the card follows the live configured price.
+    var baseReg  = parseFloat($block0.attr('data-base-regular'));
+    var baseSale = parseFloat($block0.attr('data-base-sale'));
+    var userTouched = false;
 
     function money(n) { return '$' + n.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}); }
 
@@ -233,7 +238,16 @@ require(['jquery', 'domReady!'], function ($) {
 
     // Render the "Today's Special Price" blocks (top + bottom) with the live sale + compare price.
     function renderCards() {
-        var d = compute();
+        // Before the customer touches an option, show the server baseline (matches the collection card).
+        // After, follow the live configured price so it reflects their real selections.
+        var d;
+        if (userTouched) {
+            d = compute();
+        } else if (!isNaN(baseSale) && baseSale > 0) {
+            d = { regular: baseReg, sale: baseSale, save: (baseReg - baseSale), pct: 0 };
+        } else {
+            d = compute(); // fallback if the server baseline is missing
+        }
         var $blocks = $('.tcs-price-block');
         if (!d) { $blocks.css('visibility', 'hidden'); return; }
         $blocks.css('visibility', 'visible');
@@ -247,7 +261,17 @@ require(['jquery', 'domReady!'], function ($) {
         new MutationObserver(function () { renderCards(); })
             .observe(target, { childList: true, subtree: true, characterData: true });
     }
-    $(document).on('change', '#product_addtocart_form', function () { setTimeout(renderCards, 80); });
+    // The customer physically engaging the option controls (mouse / touch / keyboard) switches the
+    // card from the server baseline to the LIVE configured price. Programmatic defaults set on load
+    // (the optional "Do not need one" auto-set, warranty reset, priceBundle init) fire no such
+    // interaction, so the baseline holds until the customer actually starts choosing.
+    $(document).on('mousedown touchstart keydown',
+        '#product-options-wrapper, .bundle-options-wrapper, .warranty_options', function () {
+        userTouched = true;
+    });
+    $(document).on('change', 'select.bundle-option-select, .warranty_options input', function () {
+        if (userTouched) { setTimeout(renderCards, 80); }
+    });
 });
 </script>
 
@@ -271,9 +295,28 @@ require(['jquery', 'domReady!'], function ($) {
             <?php endforeach; ?>
         <fieldset class="fieldset fieldset-bundle-options">
             <?php $tcsPid = (int)$product->getId(); ?>
+            <?php
+                /* Baseline price for first paint — computed at the PRODUCT level with the SAME formula the
+                   collection card uses (regular_price + MAP discount / final_price), so the PDP's initial
+                   price matches the card exactly WITHOUT forcing any option selection. The price-card JS
+                   shows this baseline until the customer actually changes an option, then switches to the
+                   live configured price. */
+                $tcsBaseReg = 0.0; $tcsBaseSale = 0.0;
+                try {
+                    $tcsMapH = $this->helper('Thecommerceshop\Map\Helper\Data');
+                    $tcsBaseReg = (float)$product->getPriceInfo()->getPrice('regular_price')->getAmount()->getValue();
+                    $tcsIsMapBase = ($tcsMapH->getMapCategoryId() && in_array($tcsMapH->getMapCategoryId(), $product->getCategoryIds())) && !($product->getSpecialPrice() > 0);
+                    if ($tcsIsMapBase) {
+                        $tcsBaseSale = (float)$tcsMapH->getRuleDiscountforCustomAmount($product->getId(), $tcsBaseReg);
+                    } else {
+                        $tcsBaseSale = (float)$product->getPriceInfo()->getPrice('final_price')->getAmount()->getValue();
+                    }
+                } catch (\Throwable $e) {}
+                if ($tcsBaseSale <= 0 || $tcsBaseSale > $tcsBaseReg) { $tcsBaseSale = $tcsBaseReg; }
+            ?>
             <!-- Redesign: top price block — Today's Special Price card (sale + compare), compare + wishlist actions. -->
             <div class="tcs-top-price">
-                <div class="tcs-price-block" data-tcs-pricecard="<?= $tcsPid ?>">
+                <div class="tcs-price-block" data-tcs-pricecard="<?= $tcsPid ?>" data-base-regular="<?= number_format($tcsBaseReg, 2, '.', '') ?>" data-base-sale="<?= number_format($tcsBaseSale, 2, '.', '') ?>">
                     <div class="tcs-price-card">
                         <span class="tcs-price-card__label">Today's Special Price</span>
                         <span class="tcs-price-card__sale">&nbsp;</span>

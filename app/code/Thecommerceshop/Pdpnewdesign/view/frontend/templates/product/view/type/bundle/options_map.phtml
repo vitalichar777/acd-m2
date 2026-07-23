@@ -84,9 +84,10 @@ require(['jquery', 'domReady!'], function ($) {
 
 <script type="text/javascript">
 require(['jquery', 'domReady!'], function ($) {
-    // Accessories: default optional dropdown(s) to "Do not need one"; for a REQUIRED accessory option
-    // with no "Do not need one", auto-select the first real option so the configured price is complete
-    // and matches the collection-page price.
+    // Accessories: default optional dropdown(s) to "Do not need one" (a no-cost default the customer
+    // can freely change). REQUIRED accessories are intentionally left UNSELECTED so the customer picks
+    // them — the "Competitor Price" shown on first paint comes from a server-side product-level baseline
+    // (see the sync() script below), so it still matches the collection card without forcing a selection.
     $('.tcs-bundle-group--optional select.bundle-option-select').each(function () {
         var $sel = $(this);
         if ($sel.val()) { return; } // leave any pre-selected value alone
@@ -95,9 +96,6 @@ require(['jquery', 'domReady!'], function ($) {
         }).first();
         if ($dnn.length) {
             $sel.val($dnn.val()).trigger('change');
-        } else if ($sel.closest('.field.option').hasClass('required')) {
-            var $first = $sel.find('option').filter(function () { return $.trim(this.value) !== ''; }).first();
-            if ($first.length) { $sel.val($first.val()).trigger('change'); }
         }
     });
 
@@ -396,18 +394,27 @@ require(['jquery', 'domReady!'], function ($) {
     var pid = <?= (int)$product->getId() ?>;
     var $val = $('.tcs-top-price__value[data-tcs-mirror-price="' + pid + '"]');
     if (!$val.length) { return; }
+    // Before the customer changes an option, keep the server-side product-level baseline (which matches
+    // the collection card). Once they actually pick an option, mirror the live configured price instead.
+    var userTouched = false;
     // Mirror the "Competitor Price". Non-MAP products show the compare ("was") price here — the
     // actual sale price lives in the popup — so mirror the old price when present.
     function sync() {
-        var $src = $('#old-price-configured-' + pid + ' .price').first();
-        if (!$src.length) { $src = $('#product-price-' + pid + ' .price').first(); }
-        if (!$src.length) { $src = $('.product-info-main .product-info-price .price-box .price').first(); }
-        // only overwrite the server-side fallback when the live price actually has a value
-        if ($src.length && $.trim($src.text()) !== '') { $val.html($src.html()); }
-        // Mirror the shown "Competitor Price" into the bottom summary's price box when it has no live value.
-        var shown = $val.html();
+        if (userTouched) {
+            var $src = $('#old-price-configured-' + pid + ' .price').first();
+            if (!$src.length) { $src = $('#product-price-' + pid + ' .price').first(); }
+            if (!$src.length) { $src = $('.product-info-main .product-info-price .price-box .price').first(); }
+            // only overwrite the server-side fallback when the live price actually has a value
+            if ($src.length && $.trim($src.text()) !== '') { $val.html($src.html()); }
+        }
+        // Keep the bottom summary price identical to the top "Competitor Price" at all times. Before the
+        // customer selects options this is the server baseline (matches the collection card); afterwards
+        // it's the live configured price mirrored above. Previously this only filled the bottom when it
+        // was empty, so priceBundle's own (now-unconfigured) value would win and diverge from the top.
+        // The value-diff guard prevents the price-box MutationObserver below from looping.
+        var shown = $.trim($val.html());
         $('.block-bundle-summary .price-configured_price .price').each(function () {
-            if ($.trim($(this).text()) === '') { $(this).html(shown); }
+            if ($.trim($(this).html()) !== shown) { $(this).html($val.html()); }
         });
     }
     sync();
@@ -422,7 +429,17 @@ require(['jquery', 'domReady!'], function ($) {
     if ($bpb.length && window.MutationObserver) {
         new MutationObserver(function () { sync(); }).observe($bpb[0], { childList: true, subtree: true, characterData: true });
     }
-    $(document).on('change', '#product_addtocart_form', function () { setTimeout(sync, 80); });
+    // The customer physically engaging the option controls (mouse / touch / keyboard) switches the
+    // Competitor Price from the server baseline to the LIVE configured price. Programmatic defaults set
+    // on load (the optional "Do not need one" auto-set, warranty reset, priceBundle init) fire no such
+    // interaction, so the baseline holds until the customer actually starts choosing.
+    $(document).on('mousedown touchstart keydown',
+        '#product-options-wrapper, .bundle-options-wrapper, .warranty_options', function () {
+        userTouched = true;
+    });
+    $(document).on('change', 'select.bundle-option-select, .warranty_options input', function () {
+        if (userTouched) { setTimeout(sync, 80); }
+    });
     // CTA (green "Unlock Lowest Price") -> only show the price popup; never add to cart.
     // The popup is shown by the popup script's delegated hover/click handlers; here we just
     // stop the anchor from navigating.
