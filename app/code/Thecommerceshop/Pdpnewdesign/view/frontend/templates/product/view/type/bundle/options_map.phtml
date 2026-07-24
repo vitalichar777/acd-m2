@@ -344,7 +344,7 @@ require(['jquery', 'domReady!'], function ($) {
                 </div>
                 <a href="javascript:void(0);" class="tcs-top-price__cta" role="button">
                     <span class="tcs-top-price__cta-icon"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="9" viewBox="0 0 17 9" fill="none"><path d="M16 5.08008H16.75V3.58008H16V4.33008V5.08008ZM0 4.33008L7.5 8.66021V-4.91142e-05L0 4.33008ZM16 4.33008V3.58008H8V4.33008V5.08008H16V4.33008ZM8 4.33008V3.58008H6.75V4.33008V5.08008H8V4.33008Z" fill="#19AF2B"/></svg></span>
-                    <span class="tcs-top-price__cta-text"><span class="tcs-top-price__cta-a">Unlock</span> <span class="tcs-top-price__cta-b">Lowest Price</span></span>
+                    <span class="tcs-top-price__cta-text"><span class="tcs-top-price__cta-a">Add to Cart</span> <span class="tcs-top-price__cta-b">to Unlock Lowest Price</span></span>
                 </a>
                 <a href="javascript:void(0);" class="tcs-top-price__wish" role="button" aria-label="Add to Wish List">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="22" viewBox="0 0 24 22" fill="none"><path d="M23 6.45455C23 3.44208 20.435 1 17.2708 1C14.9051 1 12.8742 2.36519 12 4.31324C11.1258 2.36519 9.09492 1 6.72917 1C3.56504 1 1 3.44208 1 6.45455C1 15.2067 12 21 12 21C12 21 23 15.2067 23 6.45455Z" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -500,9 +500,12 @@ require(['jquery', 'domReady!'], function ($) {
 /* brief highlight on the Add-to-Cart button when the "Unlock Lowest Price" pill scrolls to it */
 .tcs-atc-flash { animation: tcsAtcFlash 1.2s ease; }
 @keyframes tcsAtcFlash { 0%, 100% { box-shadow: 0 0 0 0 rgba(47,43,188,0); } 30% { box-shadow: 0 0 0 3px rgba(47,43,188,.45); } }
-.tcs-top-price__cta-a { color: #EE2D43; }
+.tcs-top-price__cta-a { color: #19AF2B; }
 .tcs-top-price__cta-b { color: #EE2D43; }
 .tcs-top-price__cta:hover { background: #ddfad0; }
+/* never underline the pill text on hover (the theme's a:hover adds it) */
+.tcs-top-price__cta, .tcs-top-price__cta:hover, .tcs-top-price__cta:focus, .tcs-top-price__cta:active,
+.tcs-top-price__cta:hover .tcs-top-price__cta-text, .tcs-top-price__cta:hover span { text-decoration: none !important; }
 /* arrow sticks out to the left of the button (like the design) */
 /* Arrow icon removed from the "Unlock Lowest Price" pills (top + bottom price blocks) */
 .tcs-top-price__cta-icon { display: none !important; }
@@ -917,6 +920,8 @@ span#make_an_offer_show-popup::after {
 .tcs-mainbtn__b { color: #F7D23D; }
 .tcs-mainbtn__arrow { display: inline-flex; align-items: center; }
 .tcs-mainbtn__arrow svg { display: block; }
+/* while the theme is adding (Adding.../Added) the button gets .disabled — hide the arrow then */
+.tcs-mainbtn.disabled .tcs-mainbtn__arrow, .tcs-mainbtn[disabled] .tcs-mainbtn__arrow { display: none !important; }
 
 /* Redesign: bottom summary — hide image/name/stock; style the configured price like the top block */
 .block-bundle-summary .bundle-info .product-image-container { display: none !important; }
@@ -992,9 +997,12 @@ body.catalog-product-view:not(.weltpixel-quickview-catalog-product-view):not(.we
 <script type="text/javascript">
 require(['jquery', 'domReady!'], function ($) {
     // Bottom main CTA "Add to Cart to Get Lowest Price".
+    // NOTE: a SINGLE text span + <i> arrow (not nested spans / a <span> arrow) so Porto's add-to-cart
+    // loader — button.find('span').text('Adding...') — only hits the one span. Nested spans caused the
+    // doubled "Adding... Adding..." and doubled "Add to Cart" after restore.
     var MAINBTN_HTML =
-        '<span class="tcs-mainbtn__text"><span class="tcs-mainbtn__a">Add to Cart</span> <span class="tcs-mainbtn__b">to Get Lowest Price</span></span>' +
-        '<span class="tcs-mainbtn__arrow"><svg xmlns="http://www.w3.org/2000/svg" width="25" height="12" viewBox="0 0 25 12" fill="none"><path d="M24.5303 6.05328C24.8232 5.76039 24.8232 5.28551 24.5303 4.99262L19.7574 0.219648C19.4645 -0.073245 18.9896 -0.073245 18.6967 0.219648C18.4038 0.512542 18.4038 0.987415 18.6967 1.28031L22.9393 5.52295L18.6967 9.76559C18.4038 10.0585 18.4038 10.5334 18.6967 10.8263C18.9896 11.1191 19.4645 11.1191 19.7574 10.8263L24.5303 6.05328ZM0 5.52295V6.27295H24V5.52295V4.77295H0V5.52295Z" fill="white"/></svg></span>';
+        '<span class="tcs-mainbtn__text">Add to Cart <b class="tcs-mainbtn__b">to Get Lowest Price</b></span>' +
+        '<i class="tcs-mainbtn__arrow"><svg xmlns="http://www.w3.org/2000/svg" width="25" height="12" viewBox="0 0 25 12" fill="none"><path d="M24.5303 6.05328C24.8232 5.76039 24.8232 5.28551 24.5303 4.99262L19.7574 0.219648C19.4645 -0.073245 18.9896 -0.073245 18.6967 0.219648C18.4038 0.512542 18.4038 0.987415 18.6967 1.28031L22.9393 5.52295L18.6967 9.76559C18.4038 10.0585 18.4038 10.5334 18.6967 10.8263C18.9896 11.1191 19.4645 11.1191 19.7574 10.8263L24.5303 6.05328ZM0 5.52295V6.27295H24V5.52295V4.77295H0V5.52295Z" fill="white"/></svg></i>';
     // MAP products: retext the summary "View Lowest Price" quickview into the primary blue button.
     var $vlp = $('.block-bundle-summary .tcs-bt-quickview > a.tcs-quickview').first();
     if ($vlp.length) {
@@ -1007,13 +1015,27 @@ require(['jquery', 'domReady!'], function ($) {
         if ($atc.length && !$atc.hasClass('tcs-mainbtn')) { $atc.addClass('tcs-mainbtn').html(MAINBTN_HTML); }
     }
 
+    // The theme's add-to-cart cycle rewrites the button's single span 'Adding...' -> 'Added' -> 'Add to
+    // Cart' (dropping our two-tone label + arrow). Watch the button and restore the exact original once
+    // the cycle finishes (no longer .disabled and the <b> label is gone). The arrow is hidden via CSS
+    // while .disabled is set.
+    $('.tcs-mainbtn').each(function () {
+        if (this.__tcsBtnObserved || !window.MutationObserver) { return; }
+        this.__tcsBtnObserved = true;
+        var btn = this;
+        new MutationObserver(function () {
+            var $b = $(btn);
+            if (!$b.hasClass('disabled') && !$b.find('.tcs-mainbtn__b').length) { $b.html(MAINBTN_HTML); }
+        }).observe(btn, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    });
+
     // Bottom price row: inject the green "Unlock" pill (same as top) after the price, wired to the quickview.
     var $details = $('.block-bundle-summary .product-details').first();
     if ($details.length && !$details.children('.tcs-bottom-unlock').length) {
         var $pill = $(
             '<a href="javascript:void(0);" class="tcs-top-price__cta tcs-bottom-unlock" role="button">' +
               '<span class="tcs-top-price__cta-icon"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="9" viewBox="0 0 17 9" fill="none"><path d="M16 5.08008H16.75V3.58008H16V4.33008V5.08008ZM0 4.33008L7.5 8.66021V-4.91142e-05L0 4.33008ZM16 4.33008V3.58008H8V4.33008V5.08008H16V4.33008ZM8 4.33008V3.58008H6.75V4.33008V5.08008H8V4.33008Z" fill="#19AF2B"/></svg></span>' +
-              '<span class="tcs-top-price__cta-text"><span class="tcs-top-price__cta-a">Unlock</span> <span class="tcs-top-price__cta-b">Lowest Price</span></span>' +
+              '<span class="tcs-top-price__cta-text"><span class="tcs-top-price__cta-a">Add to Cart</span> <span class="tcs-top-price__cta-b">to Unlock Lowest Price</span></span>' +
             '</a>'
         );
         $details.children('.price-box.price-configured_price').first().after($pill);

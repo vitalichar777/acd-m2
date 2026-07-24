@@ -834,6 +834,8 @@ body.catalog-product-view:not(.weltpixel-quickview-catalog-product-view):not(.we
 .tcs-mainbtn__a { color: #fff; }
 .tcs-mainbtn__b { color: #F7D23D; font-weight: inherit; font-style: normal; }
 .tcs-mainbtn__arrow { display: inline-flex; align-items: center; font-style: normal; }
+/* while the theme is adding (Adding.../Added) the button gets .disabled — hide the arrow then */
+.tcs-mainbtn.disabled .tcs-mainbtn__arrow, .tcs-mainbtn[disabled] .tcs-mainbtn__arrow { display: none !important; }
 .tcs-mainbtn__arrow svg { display: block; }
 
 /* Redesign: bottom summary — hide image/name/stock; style the configured price like the top block */
@@ -923,6 +925,20 @@ require(['jquery', 'domReady!'], function ($) {
         var $atc = $('.product-add-form .box-tocart .action.tocart').first();
         if ($atc.length && !$atc.hasClass('tcs-mainbtn')) { $atc.addClass('tcs-mainbtn').html(MAINBTN_HTML); }
     }
+
+    // The theme's add-to-cart cycle rewrites the button's single span 'Adding...' -> 'Added' -> 'Add to
+    // Cart' (dropping our two-tone label + arrow). Watch the button and restore the exact original once
+    // the cycle finishes (no longer .disabled and the <b> label is gone). The arrow is hidden via CSS
+    // while .disabled is set.
+    $('.tcs-mainbtn').each(function () {
+        if (this.__tcsBtnObserved || !window.MutationObserver) { return; }
+        this.__tcsBtnObserved = true;
+        var btn = this;
+        new MutationObserver(function () {
+            var $b = $(btn);
+            if (!$b.hasClass('disabled') && !$b.find('.tcs-mainbtn__b').length) { $b.html(MAINBTN_HTML); }
+        }).observe(btn, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    });
 
     // Bottom price row: inject the "Today's Special Price" card, and move the affirm widget below it (above the ATC).
     var $details = $('.block-bundle-summary .product-details').first();
