@@ -126,18 +126,20 @@ require(['jquery', 'domReady!'], function ($) {
         }
     });
 
-    // Warranty: show only 3 / 5 / 10 Year cards.
+    // Warranty: show ALL options configured in admin (the 3/5/10-only filter was removed — admin now
+    // controls exactly which options appear), but NEVER show the "None" option. Start with no selection.
     var $warr = $('.warranty_options');
     if ($warr.length) {
+        // hide the "None" choice (value="" decline option) — kept in the DOM so the un-select behavior
+        // can still fall back to it, but never shown as a card.
         $warr.find('.field.choice').each(function () {
-            var $c = $(this);
-            var name = $.trim($c.find('.product-name').text());
-            if (!/^(3|5|10)\s*year/i.test(name)) { $c.addClass('tcs-warr-hide'); }
+            var $c = $(this), $r = $c.find('input[type="radio"]');
+            var label = $.trim($c.find('.product-name').text() || $c.find('label').text());
+            if (($r.length && $.trim($r.val()) === '') || /^none$/i.test(label)) { $c.addClass('tcs-warr-hide'); }
         });
-        // mark the last visible card (10 Year) so it can span full width in the 2+1 layout
+        // mark the last visible card so it can span full width in the 2-per-row layout
         $warr.find('.field.choice:not(.tcs-warr-hide)').last().addClass('tcs-warr-full');
-        // start with no warranty selected (a "None"/decline selection should exist in the option for
-        // required warranties so Add to Cart works without forcing a paid warranty)
+        // start with no warranty selected
         $warr.find('input[type="radio"]:checked').prop('checked', false).trigger('change');
     }
 

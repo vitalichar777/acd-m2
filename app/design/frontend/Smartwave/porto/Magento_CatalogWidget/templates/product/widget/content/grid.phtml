@@ -35,8 +35,8 @@ $_category_grid_config = $this->helper('Smartwave\Porto\Helper\Data')->getConfig
     $title = $block->getTitle() ? __($block->getTitle()) : '';
     $items = $block->getProductCollection()->getItems();
 
-    $showWishlist = true;
-    $showCompare = true;
+    $showWishlist = false; // Redesign: hide wishlist/compare on widget cards for now (were overlapping the CTA)
+    $showCompare = false;
     $showCart = true;
     $templateType = \Magento\Catalog\Block\Product\ReviewRendererInterface::DEFAULT_VIEW;
     $description = false;
@@ -44,6 +44,19 @@ $_category_grid_config = $this->helper('Smartwave\Porto\Helper\Data')->getConfig
     $image_width = ($_category_config['ratio_width'])?$_category_config['ratio_width']:300;
     $image_height = ($_category_config['ratio_height'])?$_category_config['ratio_height']:300;
 ?>
+    <?php /* Redesign card CSS (blue "View & Buy Now" + red compare / green sale) — same carrier the category list uses.
+             The widget can render on pages without the catalog_category_view handle, so embed it here. */ ?>
+    <?php echo $this->getLayout()->createBlock(\Magento\Framework\View\Element\Template::class)->setTemplate('Thecommerceshop_Pdpnewdesign::product/list/lowest_price_popup.phtml')->toHtml(); ?>
+    <style>
+    /* Redesign: widget product cards — full-width "View & Buy Now" (wishlist/compare removed for now) */
+    /* override the theme constraints that break the full-width CTA */
+    .products-grid .product-item-details .product-item-actions { margin: 0 !important; }
+    .cms-page-view .products-grid .product-item-details .product-item-actions .actions-primary { width: 100% !important; }
+    .block-products-list .product-item-actions { width: 100%; margin: 0; }
+    .block-products-list .product-item-actions .actions-primary,
+    .block-products-list .product-item-actions .tcs-bt-quickview { width: 100%; display: block; float: none; }
+    .block-products-list .tcs-bt-quickview .tcs-viewbuy { width: 100%; font-size: 14px !important; }
+    </style>
     <div class="block widget block-products-list <?php /* @escapeNotVerified */ echo $mode; ?>">
         <?php if ($title):?>
         <div class="block-title">
@@ -53,11 +66,11 @@ $_category_grid_config = $this->helper('Smartwave\Porto\Helper\Data')->getConfig
         <div class="block-content">
             <?php /* @escapeNotVerified */ echo '<!-- ' . $image . '-->' ?>
             <div class="products-grid products-<?php /* @escapeNotVerified */ echo $mode; ?> <?php /* @escapeNotVerified */ echo $mode; ?>">
-                <ol class="product-items <?php /* @escapeNotVerified */ echo $type; ?>">
+                <ol class="filterproducts products list items product-items <?php /* @escapeNotVerified */ echo $type; ?>">
                     <?php $iterator = 1; ?>
                     <?php foreach ($items as $_item): ?>
-                        <?php /* @escapeNotVerified */ echo($iterator++ == 1) ? '<li class="product-item">' : '</li><li class="product-item">' ?>
-                        <div class="product-item-info" id="product-item-info_<?php echo $_item->getId();?>">
+                        <?php /* @escapeNotVerified */ echo($iterator++ == 1) ? '<li class="item product product-item">' : '</li><li class="item product product-item">' ?>
+                        <div class="product-item-info type1" data-container="product-grid" id="product-item-info_<?php echo $_item->getId();?>">
                             <a href="<?php echo $_item->getProductUrl() ?>" class="product photo product-item-photo" tabindex="-1">
                                 <?php
                                     if($_category_config['aspect_ratio'])
@@ -106,16 +119,34 @@ $_category_grid_config = $this->helper('Smartwave\Porto\Helper\Data')->getConfig
                                 </div>
                                 <?php endif; ?>
                                 <?php endif; ?>
-                                <?php if(($mapHelper->getMapCategoryId() && in_array($mapHelper->getMapCategoryId(), $_item->getCategoryIds())) && (!$_item->getSpecialPrice() > 0)){?>
-                                    <?php if($_category_config['product_price']): ?>
-                                    <?php echo "<div class='pricebox-line-through'>".$block->getProductPriceHtml($_item, $type)."</div>"; ?>
+                                <?php
+                                    /* Redesign card price (matches the category list.phtml cards):
+                                       Goodman/Daikin/MrCool reveal the sale (compare struck + green sale);
+                                       all other brands show the red slashed compare price only. */
+                                    $__isOpen = (stripos($_item->getName(), 'goodman') !== false) || (stripos($_item->getName(), 'daikin') !== false) || (stripos($_item->getName(), 'mrcool') !== false);
+                                    $__isMap  = ($mapHelper->getMapCategoryId() && in_array($mapHelper->getMapCategoryId(), $_item->getCategoryIds())) && (!$_item->getSpecialPrice() > 0);
+                                    $__reg    = $_item->getPriceInfo()->getPrice('regular_price')->getAmount()->getValue();
+                                    if($__isMap){
+                                        $__sale = (float)$mapHelper->getRuleDiscountforCustomAmount($_item->getId(), $__reg);
+                                    } else {
+                                        $__sale = (float)$_item->getPriceInfo()->getPrice('final_price')->getAmount()->getValue();
+                                    }
+                                    $__hasSale = ($__sale > 0 && $__sale < $__reg);
+                                ?>
+                                <?php if($_category_config['product_price']): ?>
+                                <div class="tcs-card-price">
+                                    <?php if($__isOpen): ?>
+                                        <?php if($__hasSale): ?>
+                                            <span class="tcs-card-price__compare">$<?php echo number_format($__reg, 2); ?></span>
+                                            <span class="tcs-card-price__sale">$<?php echo number_format($__sale, 2); ?></span>
+                                        <?php else: ?>
+                                            <span class="tcs-card-price__sale">$<?php echo number_format($__reg, 2); ?></span>
+                                        <?php endif; ?>
+                                    <?php else: ?>
+                                        <span class="tcs-card-price__compare">$<?php echo number_format($__reg, 2); ?></span>
                                     <?php endif; ?>
-                                    <?php echo $this->getLayout()->createBlock('Magento\Cms\Block\Block')->setBlockId($mapHelper->getPriceLabelBlockId())->toHtml(); ?>
-                                <?php } else{ ?>
-                                    <?php if($_category_config['product_price']): ?>
-                                    <?php echo $block->getProductPriceHtml($_item, $type); ?>
-                                    <?php endif; ?>
-                                <?php } ?>
+                                </div>
+                                <?php endif; ?>
                                 <div id='saving-price-label-<?php echo $_item->getId()?>' style = "color: #0c0;font-weight: bold;"></div>
                                 <script>
                                     var PriceBox = document.querySelector('[data-price-box="product-id-<?php echo $_item->getId()?>"]');
@@ -150,10 +181,9 @@ $_category_grid_config = $this->helper('Smartwave\Porto\Helper\Data')->getConfig
                                                     <?php $postParams = $block->getAddToCartPostParams($_item); ?>
                                                     <?php if (($mapHelper->getMapCategoryId() && in_array($mapHelper->getMapCategoryId(), $_item->getCategoryIds())) && (!$_item->getSpecialPrice() > 0)){ ?>
                                                         <div id="quickview-<?php echo $_item->getId()?>" class="tcs-bt-quickview">
-                                                            <a data-id="<?php echo $_item->getId()?>" class="tcs-quickview btn btn-action action primary" data-quickview-url="<?php echo $mapHelper->getBaseUrl(); ?>tcs_quickview/catalog_product/view/id/<?php echo $_item->getId()?>" href="javascript:void(0);">
-                                                            <?php $buttontext = $mapHelper->getAddToCartText();
-                                                                $buttontext = isset($buttontext)? $buttontext : 'View Lowest Price';?>
-                                                            <span><?php echo $buttontext; ?></span>
+                                                            <a data-id="<?php echo $_item->getId()?>" class="tcs-viewbuy btn btn-action action primary" href="<?php echo $_item->getProductUrl(); ?>">
+                                                                <span class="tcs-viewbuy__text">View &amp; Buy Now</span>
+                                                                <span class="tcs-viewbuy__arrow"><svg xmlns="http://www.w3.org/2000/svg" width="25" height="12" viewBox="0 0 25 12" fill="none"><path d="M24.5303 6.05328C24.8232 5.76039 24.8232 5.28551 24.5303 4.99262L19.7574 0.219648C19.4645 -0.073245 18.9896 -0.073245 18.6967 0.219648C18.4038 0.512542 18.4038 0.987415 18.6967 1.28031L22.9393 5.52295L18.6967 9.76559C18.4038 10.0585 18.4038 10.5334 18.6967 10.8263C18.9896 11.1191 19.4645 11.1191 19.7574 10.8263L24.5303 6.05328ZM0 5.52295V6.27295H24V5.52295V4.77295H0V5.52295Z" fill="#F7D23D"/></svg></span>
                                                             </a>
                                                         </div>
                                                     <?php }else{ ?>
