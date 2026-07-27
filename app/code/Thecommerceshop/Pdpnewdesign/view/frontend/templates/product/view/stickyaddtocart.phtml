@@ -94,6 +94,8 @@ require([
 });
 </script>
 <style>
+/* Sticky bar must sit ABOVE the site-reviews widget (#tbSiteReviews z-index 100000001) */
+.sticky-checkout { z-index: 100000002 !important; }
 /* Redesign: sticky bar "Add to Cart" — blue, matching the main product-page blue ATC. */
 .sticky-checkout .tcs-sticky-buy,
 .sticky-checkout .tcs-sticky-buy:hover,
