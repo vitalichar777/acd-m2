@@ -9,14 +9,26 @@
         <?php $tcsIsSimple = ($_product->getTypeId() === 'simple'); ?>
         <?php $buttontext = $mapHelper->getAddToCartText(); ?>
         <?php if ($tcsIsSimple):
-            /* Simple MAP product: mirror the bundle MAP top block — "Competitor Price" (struck) + compare +
-               wishlist icons, and the blue full-width "Add to Cart to Get Lowest Price" CTA (reveal popup). */
+            /* Simple MAP product: mirror the bundle/card price logic — Goodman/Daikin/MrCool reveal the sale
+               (green "Today's Special Price" + struck compare); all other brands show "Competitor Price". */
             $tcsReg = (float)$_product->getPriceInfo()->getPrice('regular_price')->getAmount()->getValue();
+            $tcsOpen = (stripos($_product->getName(), 'goodman') !== false) || (stripos($_product->getName(), 'daikin') !== false) || (stripos($_product->getName(), 'mrcool') !== false);
+            $tcsIsMap = ($mapHelper->getMapCategoryId() && in_array($mapHelper->getMapCategoryId(), $_product->getCategoryIds())) && (!$_product->getSpecialPrice() > 0);
+            $tcsSale = $tcsIsMap ? (float)$mapHelper->getRuleDiscountforCustomAmount($_product->getId(), $tcsReg) : (float)$_product->getPriceInfo()->getPrice('final_price')->getAmount()->getValue();
+            $tcsHasSale = ($tcsSale > 0 && $tcsSale < $tcsReg);
         ?>
         <div class="tcs-top-price tcs-simple-top">
             <div class="tcs-top-price__info">
-                <span class="tcs-top-price__label">Competitor Price</span>
-                <span class="tcs-top-price__value"><?= /* @noEscape */ $priceHelper->currency($tcsReg, true, false) ?></span>
+                <?php if ($tcsOpen): ?>
+                    <span class="tcs-top-price__label tcs-top-price__label--sale">Today's Special Price</span>
+                    <span class="tcs-top-price__saleline">
+                        <span class="tcs-top-price__sale"><?= /* @noEscape */ $priceHelper->currency($tcsHasSale ? $tcsSale : $tcsReg, true, false) ?></span>
+                        <?php if ($tcsHasSale): ?><span class="tcs-top-price__was"><?= /* @noEscape */ $priceHelper->currency($tcsReg, true, false) ?></span><?php endif; ?>
+                    </span>
+                <?php else: ?>
+                    <span class="tcs-top-price__label">Competitor Price</span>
+                    <span class="tcs-top-price__value"><?= /* @noEscape */ $priceHelper->currency($tcsReg, true, false) ?></span>
+                <?php endif; ?>
             </div>
             <a href="javascript:void(0);" class="tcs-top-price__compare" role="button" aria-label="Add to Compare">
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="20" viewBox="0 0 18 20" fill="none"><path d="M15.375 0C14.3395 0 13.5 0.839466 13.5 1.875V17.625C13.5 18.6605 14.3395 19.5 15.375 19.5H16.125C17.1605 19.5 18 18.6605 18 17.625V1.875C18 0.839466 17.1605 0 16.125 0H15.375Z" fill="#333333"/><path d="M6.75 6.375C6.75 5.33947 7.58947 4.5 8.625 4.5H9.375C10.4105 4.5 11.25 5.33947 11.25 6.375V17.625C11.25 18.6605 10.4105 19.5 9.375 19.5H8.625C7.58947 19.5 6.75 18.6605 6.75 17.625V6.375Z" fill="#333333"/><path d="M0 10.875C0 9.83947 0.839466 9 1.875 9H2.625C3.66053 9 4.5 9.83947 4.5 10.875V17.625C4.5 18.6605 3.66053 19.5 2.625 19.5H1.875C0.839466 19.5 0 18.6605 0 17.625V10.875Z" fill="#333333"/></svg>
@@ -48,6 +60,11 @@
         .tcs-simple-top .tcs-top-price__info { flex: 0 0 auto; display: flex; flex-direction: column; line-height: 1.15; }
         .tcs-simple-top .tcs-top-price__label { font-size: 11px; font-weight: 700; color: #21293C; text-transform: uppercase; }
         .tcs-simple-top .tcs-top-price__value { font-size: 30px; font-weight: 700; color: #EE2D43; white-space: nowrap; text-decoration: line-through; }
+        /* open brands (Goodman/Daikin/MrCool): reveal the green sale price + struck compare */
+        .tcs-simple-top .tcs-top-price__label--sale { color: #00973B; }
+        .tcs-simple-top .tcs-top-price__saleline { display: inline-flex; align-items: baseline; gap: 10px; }
+        .tcs-simple-top .tcs-top-price__sale { font-size: 30px; font-weight: 700; color: #00973B; line-height: 1; white-space: nowrap; }
+        .tcs-simple-top .tcs-top-price__was { font-size: 18px; font-weight: 700; color: #EE2D43; text-decoration: line-through; white-space: nowrap; }
         .tcs-simple-top .tcs-top-price__compare { margin-left: auto; }
         .tcs-simple-top .tcs-top-price__compare,
         .tcs-simple-top .tcs-top-price__wish {
