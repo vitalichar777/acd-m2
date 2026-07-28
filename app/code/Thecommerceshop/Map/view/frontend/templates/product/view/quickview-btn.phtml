@@ -20,10 +20,12 @@
         <div class="tcs-top-price tcs-simple-top">
             <div class="tcs-top-price__info">
                 <?php if ($tcsOpen): ?>
-                    <span class="tcs-top-price__label tcs-top-price__label--sale">Today's Special Price</span>
-                    <span class="tcs-top-price__saleline">
-                        <span class="tcs-top-price__sale"><?= /* @noEscape */ $priceHelper->currency($tcsHasSale ? $tcsSale : $tcsReg, true, false) ?></span>
-                        <?php if ($tcsHasSale): ?><span class="tcs-top-price__was"><?= /* @noEscape */ $priceHelper->currency($tcsReg, true, false) ?></span><?php endif; ?>
+                    <span class="tcs-price-block">
+                        <span class="tcs-price-card">
+                            <span class="tcs-price-card__label">Today's Special Price</span>
+                            <span class="tcs-price-card__sale"><?= /* @noEscape */ $priceHelper->currency($tcsHasSale ? $tcsSale : $tcsReg, true, false) ?></span>
+                        </span>
+                        <?php if ($tcsHasSale): ?><span class="tcs-price-card__compare"><?= /* @noEscape */ $priceHelper->currency($tcsReg, true, false) ?></span><?php endif; ?>
                     </span>
                 <?php else: ?>
                     <span class="tcs-top-price__label">Competitor Price</span>
@@ -61,10 +63,12 @@
         .tcs-simple-top .tcs-top-price__label { font-size: 11px; font-weight: 700; color: #21293C; text-transform: uppercase; }
         .tcs-simple-top .tcs-top-price__value { font-size: 30px; font-weight: 700; color: #EE2D43; white-space: nowrap; text-decoration: line-through; }
         /* open brands (Goodman/Daikin/MrCool): reveal the green sale price + struck compare */
-        .tcs-simple-top .tcs-top-price__label--sale { color: #00973B; }
-        .tcs-simple-top .tcs-top-price__saleline { display: inline-flex; align-items: baseline; gap: 10px; }
-        .tcs-simple-top .tcs-top-price__sale { font-size: 30px; font-weight: 700; color: #00973B; line-height: 1; white-space: nowrap; }
-        .tcs-simple-top .tcs-top-price__was { font-size: 18px; font-weight: 700; color: #EE2D43; text-decoration: line-through; white-space: nowrap; }
+        /* open brands: "Today's Special Price" yellow card (label + green sale) + struck compare outside — same as the bundle product pages */
+        .tcs-simple-top .tcs-price-block { display: inline-flex; align-items: center; gap: 14px; font-family: 'Open Sans', sans-serif; }
+        .tcs-simple-top .tcs-price-card { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 2px; border: 1px solid #F7D23D; background: #FFFBE6; border-radius: 12px; padding: 8px 16px; }
+        .tcs-simple-top .tcs-price-card__label { font-size: 12px; font-weight: 700; color: #00973B; text-transform: uppercase; letter-spacing: .02em; }
+        .tcs-simple-top .tcs-price-card__sale { font-size: 30px; font-weight: 700; color: #00973B; line-height: 1.1; white-space: nowrap; }
+        .tcs-simple-top .tcs-price-card__compare { font-size: 20px; font-weight: 700; color: #EE2D43; text-decoration: line-through; white-space: nowrap; transform: translateY(9px); }
         .tcs-simple-top .tcs-top-price__compare { margin-left: auto; }
         .tcs-simple-top .tcs-top-price__compare,
         .tcs-simple-top .tcs-top-price__wish {
