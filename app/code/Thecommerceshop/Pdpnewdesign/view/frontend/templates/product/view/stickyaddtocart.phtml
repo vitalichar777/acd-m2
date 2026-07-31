@@ -51,10 +51,18 @@ require([
                     var t = $.trim($(this).text());
                     return t !== '' && t !== ' ';
                 }).first();
-                var stickyPrice = $tcsSale.length
-                    ? $tcsSale.text()
-                    : (($('.product-details .price-box .price').length > 0) ? $('.product-details .price-box .price').html() : $('.product-info-main .product-info-price .price-box .price').html());
-                $('#checkout_total_clone').html('Total: <span class="tcs-sticky-total">'+stickyPrice+'</span>');
+                // COMPARE-only (MAP) products expose the struck "Competitor Price" in .tcs-top-price__value.
+                var $tcsCompare = $('.tcs-top-price__value').filter(function () { return /[0-9]/.test($(this).text()); }).first();
+                var stickyCls, stickyPrice;
+                if ($tcsSale.length) {
+                    stickyCls = 'tcs-sticky-sale'; stickyPrice = $.trim($tcsSale.text());          // green, NOT struck
+                } else if ($tcsCompare.length) {
+                    stickyCls = 'tcs-sticky-compare'; stickyPrice = $.trim($tcsCompare.text());    // red, struck
+                } else {
+                    stickyCls = '';
+                    stickyPrice = ($('.product-details .price-box .price').length > 0) ? $('.product-details .price-box .price').text() : $('.product-info-main .product-info-price .price-box .price').text();
+                }
+                $('#checkout_total_clone').html('Total: <span class="tcs-sticky-total '+stickyCls+'">'+$.trim(stickyPrice)+'</span>');
                 $(".sticky-checkout").removeClass("hide");
                 $(cartButton).off("DOMSubtreeModified").on("DOMSubtreeModified",function(){
                     $(cartButton+"-clone").html($(cartButton).html());
@@ -111,7 +119,8 @@ require([
     text-transform: uppercase; text-decoration: none !important;
 }
 .sticky-checkout .tcs-sticky-buy:hover { background: #262299 !important; }
-/* Redesign: sticky bar total shows the green SALE price */
-.sticky-checkout #checkout_total_clone .tcs-sticky-total,
-.sticky-checkout #checkout_total_clone .tcs-sticky-total .price { color: #00973B !important; font-weight: 700; }
+/* Redesign: sticky bar total — green (not struck) for a sale, red struck for a compare-only price */
+.sticky-checkout #checkout_total_clone .tcs-sticky-total { font-weight: 700; }
+.sticky-checkout #checkout_total_clone .tcs-sticky-sale { color: #00973B !important; text-decoration: none !important; }
+.sticky-checkout #checkout_total_clone .tcs-sticky-compare { color: #EE2D43 !important; text-decoration: line-through !important; }
 </style>
