@@ -9,10 +9,10 @@
         <?php $tcsIsSimple = ($_product->getTypeId() === 'simple'); ?>
         <?php $buttontext = $mapHelper->getAddToCartText(); ?>
         <?php if ($tcsIsSimple):
-            /* Simple MAP product: mirror the bundle/card price logic — Goodman/Daikin/MrCool reveal the sale
-               (green "Today's Special Price" + struck compare); all other brands show "Competitor Price". */
+            /* Simple MAP product: mirror the bundle/card price logic — Goodman/Daikin/MrCool/Lennox reveal the
+               sale (green "Today's Special Price" + struck compare); all other brands show "Competitor Price". */
             $tcsReg = (float)$_product->getPriceInfo()->getPrice('regular_price')->getAmount()->getValue();
-            $tcsOpen = (stripos($_product->getName(), 'goodman') !== false) || (stripos($_product->getName(), 'daikin') !== false) || (stripos($_product->getName(), 'mrcool') !== false);
+            $tcsOpen = (stripos($_product->getName(), 'goodman') !== false) || (stripos($_product->getName(), 'daikin') !== false) || (stripos($_product->getName(), 'mrcool') !== false) || (stripos($_product->getName(), 'lennox') !== false);
             $tcsIsMap = ($mapHelper->getMapCategoryId() && in_array($mapHelper->getMapCategoryId(), $_product->getCategoryIds())) && (!$_product->getSpecialPrice() > 0);
             $tcsSale = $tcsIsMap ? (float)$mapHelper->getRuleDiscountforCustomAmount($_product->getId(), $tcsReg) : (float)$_product->getPriceInfo()->getPrice('final_price')->getAmount()->getValue();
             $tcsHasSale = ($tcsSale > 0 && $tcsSale < $tcsReg);

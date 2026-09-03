@@ -301,9 +301,9 @@ $mapHelper = $this->helper('Thecommerceshop\Map\Helper\Data');
                             </div>
                         <?php endif; ?>
                         <?php
-                            /* Card price: only Goodman / Daikin (by title) reveal the sale price openly
-                               (compare struck + sale green). All other brands show the regular price only. */
-                            $__isOpen = (stripos($_product->getName(), 'goodman') !== false) || (stripos($_product->getName(), 'daikin') !== false) || (stripos($_product->getName(), 'mrcool') !== false);
+                            /* Card price: only Goodman / Daikin / MrCool / Lennox (by title) reveal the sale
+                               price openly (compare struck + sale green). All other brands show regular price only. */
+                            $__isOpen = (stripos($_product->getName(), 'goodman') !== false) || (stripos($_product->getName(), 'daikin') !== false) || (stripos($_product->getName(), 'mrcool') !== false) || (stripos($_product->getName(), 'lennox') !== false);
                             $__isMap = ($mapHelper->getMapCategoryId() && in_array($mapHelper->getMapCategoryId(), $_product->getCategoryIds())) && (!$_product->getSpecialPrice() > 0);
                             $__reg  = $_product->getPriceInfo()->getPrice('regular_price')->getAmount()->getValue();
                             if($__isMap){

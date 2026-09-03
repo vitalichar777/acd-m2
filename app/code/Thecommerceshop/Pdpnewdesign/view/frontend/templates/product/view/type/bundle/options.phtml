@@ -9,11 +9,11 @@
 <?php
 $product = $block->getProduct();
 
-/* Product-dependent pricing: only Goodman / Daikin products (by title) show open pricing with this
-   template. Every other brand uses the MAP / hidden-price template (options_map.phtml): competitor
-   price + a green "Unlock Lowest Price" pill that scrolls to the Add-to-Cart button (no popup). */
+/* Product-dependent pricing: only Goodman / Daikin / MrCool / Lennox products (by title) show open
+   pricing with this template. Every other brand uses the MAP / hidden-price template (options_map.phtml):
+   competitor price + a green "Unlock Lowest Price" pill that scrolls to the Add-to-Cart button (no popup). */
 $tcsName = strtolower((string)$product->getName());
-$tcsOpenPrice = (strpos($tcsName, 'goodman') !== false) || (strpos($tcsName, 'daikin') !== false) || (strpos($tcsName, 'mrcool') !== false);
+$tcsOpenPrice = (strpos($tcsName, 'goodman') !== false) || (strpos($tcsName, 'daikin') !== false) || (strpos($tcsName, 'mrcool') !== false) || (strpos($tcsName, 'lennox') !== false);
 if (!$tcsOpenPrice) {
     echo $this->fetchView($this->getTemplateFile('Thecommerceshop_Pdpnewdesign::product/view/type/bundle/options_map.phtml'));
     return;

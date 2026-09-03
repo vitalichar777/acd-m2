@@ -121,9 +121,9 @@ $_category_grid_config = $this->helper('Smartwave\Porto\Helper\Data')->getConfig
                                 <?php endif; ?>
                                 <?php
                                     /* Redesign card price (matches the category list.phtml cards):
-                                       Goodman/Daikin/MrCool reveal the sale (compare struck + green sale);
+                                       Goodman/Daikin/MrCool/Lennox reveal the sale (compare struck + green sale);
                                        all other brands show the red slashed compare price only. */
-                                    $__isOpen = (stripos($_item->getName(), 'goodman') !== false) || (stripos($_item->getName(), 'daikin') !== false) || (stripos($_item->getName(), 'mrcool') !== false);
+                                    $__isOpen = (stripos($_item->getName(), 'goodman') !== false) || (stripos($_item->getName(), 'daikin') !== false) || (stripos($_item->getName(), 'mrcool') !== false) || (stripos($_item->getName(), 'lennox') !== false);
                                     $__isMap  = ($mapHelper->getMapCategoryId() && in_array($mapHelper->getMapCategoryId(), $_item->getCategoryIds())) && (!$_item->getSpecialPrice() > 0);
                                     $__reg    = $_item->getPriceInfo()->getPrice('regular_price')->getAmount()->getValue();
                                     if($__isMap){
